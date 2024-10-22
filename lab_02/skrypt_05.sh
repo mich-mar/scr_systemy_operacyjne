@@ -23,10 +23,6 @@
 # do listy zawierającej wszystkie adresy.
 # =====================================================================================================================
 
-
-# empty mail list
-mail_list=""
-
 # function to sending emails
 send_email() {
     local email_adress="$1"
@@ -43,7 +39,7 @@ while true; do
         break
     else
         # adding mails to list (every mail to a new line)
-        mail_list+="$temp"$'\n'
+        mail_list<temp
     fi
 done
 
