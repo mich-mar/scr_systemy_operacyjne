@@ -1,0 +1,23 @@
+
+1) Wywołanie procesu "yes > /dev/null &", który w tle generuje nieskończony strumień danych, obciążając CPU.
+
+
+2) Przed zmianą priorytetu - "top u $USER":
+
+    PID UŻYTK.    PR  NI    WIRT    REZ    WSP S  %CPU  %PAM     CZAS+ KOMENDA
+  10872 michal    20   0   10904   1792   1792 R 100,0   0,0   0:09.51 yes
+  10808 michal    20   0   10904   1792   1792 R 100,0   0,0   1:22.38 yes
+
+
+3) Po użyciu komendy - "renice +19 -p 10808":
+
+10808 (process ID): stary priorytet 0, nowy priorytet 19
+
+
+4) Po zmianie priorytetu - "top u $USER":
+
+- można zauważyć znaczne wydłużenie czasu wykonywania procesu "yes".
+
+    PID UŻYTK.    PR  NI    WIRT    REZ    WSP S  %CPU  %PAM     CZAS+ KOMENDA
+  10872 michal    20   0   10904   1792   1792 R 100,0   0,0   4:17.20 yes
+  10808 michal    39  19   10904   1792   1792 R  99,7   0,0   5:30.07 yes

@@ -1,0 +1,137 @@
+
+=======================================================================================================================
+ZADANIE 4
+
+1) Skrypt:
+
+#!/bin/bash
+
+echo_function(){
+while true;
+  do echo "Strumien z procesu: $$"
+  sleep 1
+done
+}
+
+# "cat" - odbiera i przekazuje dane dalej, synchronizując pracę całego potoku
+echo_function | cat | cat
+
+
+2) Wynik:
+michal      8432    7870  0 16:53 pts/1    00:00:00 /bin/bash ./skrypt_04.sh
+michal      8433    8432  0 16:53 pts/1    00:00:00 /bin/bash ./skrypt_04.sh
+michal      8434    8432  0 16:53 pts/1    00:00:00 cat
+michal      8435    8432  0 16:53 pts/1    00:00:00 cat
+
+
+2) Odpowiedź:
+Proces z ID=8432 uruchamia "skrypt_04.sh" i jest nadrzędnym procesem dla trzech procesów potomnych.
+Proces z ID=8433 uruchamia funkcję "echo_funcition" w skrypcie. Procesy z ID=8434 i ID=8435 są to procesy "cat",
+przekacujące dalej dane w potoku.
+
+
+
+
+=======================================================================================================================
+ZADANIE 5
+
+1) Wywołanie procesu "yes > /dev/null &", który w tle generuje nieskończony strumień danych, obciążając CPU.
+
+
+2) Przed zmianą priorytetu - "top u $USER":
+
+    PID UŻYTK.    PR  NI    WIRT    REZ    WSP S  %CPU  %PAM     CZAS+ KOMENDA
+  10872 michal    20   0   10904   1792   1792 R 100,0   0,0   0:09.51 yes
+  10808 michal    20   0   10904   1792   1792 R 100,0   0,0   1:22.38 yes
+
+
+3) Po użyciu komendy - "renice +19 -p 10808":
+
+10808 (process ID): stary priorytet 0, nowy priorytet 19
+
+
+4) Po zmianie priorytetu - "top u $USER":
+
+- można zauważyć znaczne wydłużenie czasu wykonywania procesu "yes".
+
+    PID UŻYTK.    PR  NI    WIRT    REZ    WSP S  %CPU  %PAM     CZAS+ KOMENDA
+  10872 michal    20   0   10904   1792   1792 R 100,0   0,0   4:17.20 yes
+  10808 michal    39  19   10904   1792   1792 R  99,7   0,0   5:30.07 yes
+
+
+
+
+=======================================================================================================================
+ZADANIE 6
+
+1) Ustawienie limitu procesów na 2:
+$ ulimit -u 2
+
+
+2) Wynik wywołania komendy "ls":
+$ bash: fork: retry: Zasoby chwilowo niedostępne
+
+
+3) Rozwiązaneie problemu przez zwiększenie limitu procesów np. na 50:
+$ ulimit -u 50
+
+
+4) Wynik polecenia "top -u $USER" po wywołaniu zapętlającego się skryptu:
+
+   PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+3514913 mmarkuze  20   0   14824   5648   3496 R   3,5   0,0   0:01.13 top
+3480261 mmarkuze  20   0   19416  10944   8816 S   0,0   0,0   0:00.59 systemd
+3480273 mmarkuze  20   0  186040   9264      0 S   0,0   0,0   0:00.00 (sd-pam)
+3480323 mmarkuze  20   0   43724   8488   7044 S   0,0   0,0   0:00.04 pipewire
+3480327 mmarkuze  20   0  255772  13936  10972 S   0,0   0,0   0:00.19 wireplumber
+3480329 mmarkuze  20   0   29648   8644   7552 S   0,0   0,0   0:00.04 pipewire-pulse
+3480335 mmarkuze  20   0   31648  10752   4948 S   0,0   0,0   0:00.29 sshd
+3480336 mmarkuze  20   0    8228   4120   3752 S   0,0   0,0   0:00.01 dbus-daemon
+3480393 mmarkuze  20   0   11576   5524   3732 S   0,0   0,0   0:00.20 bash
+3506636 mmarkuze  20   0   31648  10776   4968 S   0,0   0,0   0:00.03 sshd
+3506684 mmarkuze  20   0   11332   5316   3672 S   0,0   0,0   0:00.08 bash
+3514488 mmarkuze  20   0    9784   3440   3164 S   0,0   0,0   0:00.00 loop.sh
+3514494 mmarkuze  20   0    9784   3496   3216 S   0,0   0,0   0:00.00 loop.sh
+3514495 mmarkuze  20   0    9784   3508   3232 S   0,0   0,0   0:00.00 loop.sh
+3515527 mmarkuze  20   0    9784   3396   3128 S   0,0   0,0   0:00.00 loop.sh
+3515528 mmarkuze  20   0    9784   3424   3160 S   0,0   0,0   0:00.00 loop.sh
+3515534 mmarkuze  20   0    9784   3500   3224 S   0,0   0,0   0:00.00 loop.sh
+3515535 mmarkuze  20   0    9784   3468   3196 S   0,0   0,0   0:00.00 loop.sh
+3515538 mmarkuze  20   0    9784   3424   3164 S   0,0   0,0   0:00.00 loop.sh
+3515757 mmarkuze  20   0    9784   3412   3148 S   0,0   0,0   0:00.00 loop.sh
+3516550 mmarkuze  20   0    9784   3468   3204 S   0,0   0,0   0:00.00 loop.sh
+3516551 mmarkuze  20   0    9784   3368   3104 S   0,0   0,0   0:00.00 loop.sh
+3516552 mmarkuze  20   0    9784   3360   3096 S   0,0   0,0   0:00.00 loop.sh
+3516553 mmarkuze  20   0    9784   3384   3120 S   0,0   0,0   0:00.00 loop.sh
+3516554 mmarkuze  20   0    9784   3380   3112 S   0,0   0,0   0:00.00 loop.sh
+3516555 mmarkuze  20   0    9784   3400   3128 S   0,0   0,0   0:00.00 loop.sh
+3516556 mmarkuze  20   0    9784   3416   3152 S   0,0   0,0   0:00.00 loop.sh
+3516557 mmarkuze  20   0    9784   3464   3200 S   0,0   0,0   0:00.00 loop.sh
+3516558 mmarkuze  20   0    9784   3468   3196 S   0,0   0,0   0:00.00 loop.sh
+3516559 mmarkuze  20   0    9784   3444   3172 S   0,0   0,0   0:00.00 loop.sh
+3516560 mmarkuze  20   0    9784   3412   3148 S   0,0   0,0   0:00.00 loop.sh
+3516561 mmarkuze  20   0    9784   3376   3112 S   0,0   0,0   0:00.00 loop.sh
+3516562 mmarkuze  20   0    9784   3428   3172 S   0,0   0,0   0:00.00 loop.sh
+3516563 mmarkuze  20   0    9784   3444   3176 S   0,0   0,0   0:00.00 loop.sh
+3516568 mmarkuze  20   0    9784   3404   3136 S   0,0   0,0   0:00.00 loop.sh
+3516574 mmarkuze  20   0    9784   3424   3156 S   0,0   0,0   0:00.00 loop.sh
+3516576 mmarkuze  20   0    9784   3476   3216 S   0,0   0,0   0:00.00 loop.sh
+3516579 mmarkuze  20   0    9784   3412   3152 S   0,0   0,0   0:00.00 loop.sh
+3516580 mmarkuze  20   0    9784   3368   3104 S   0,0   0,0   0:00.00 loop.sh
+3516583 mmarkuze  20   0    9784   3412   3148 S   0,0   0,0   0:00.00 loop.sh
+3516584 mmarkuze  20   0    9784   3396   3132 S   0,0   0,0   0:00.00 loop.sh
+3516591 mmarkuze  20   0    9784   3428   3164 S   0,0   0,0   0:00.00 loop.sh
+3516598 mmarkuze  20   0    9784   3388   3120 S   0,0   0,0   0:00.00 loop.sh
+3516655 mmarkuze  20   0    9784   3416   3144 S   0,0   0,0   0:00.00 loop.sh
+3516661 mmarkuze  20   0    9784   3476   3212 S   0,0   0,0   0:00.00 loop.sh
+
+
+5) Skrypt do usunięcia procesów:
+
+#!/bin/bash
+
+id=$(pgrep -f "loop.sh")
+kill -9 $id
+
+
+
