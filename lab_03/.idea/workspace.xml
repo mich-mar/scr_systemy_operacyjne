@@ -13,11 +13,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9a48dc28-ff39-40bc-8846-1b56d0e3f99b" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/zadania_4_5_6.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/zadanie_04/skrypt_04.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/zadanie_05/zadanie_05.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/zadanie_06/loop.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/zadanie_06/zadanie_06.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/zadania_4_5_6.txt" beforeDir="false" afterPath="$PROJECT_DIR$/zadania_4_5_6.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -74,7 +70,7 @@
       <updated>1729540830254</updated>
       <workItem from="1729540831344" duration="14697000" />
       <workItem from="1729953922946" duration="105000" />
-      <workItem from="1729954041020" duration="4776000" />
+      <workItem from="1729954041020" duration="5405000" />
     </task>
     <servers />
   </component>

@@ -47,7 +47,7 @@ ZADANIE 5
 
 3) Po użyciu komendy - "renice +19 -p 10808":
 
-10808 (process ID): stary priorytet 0, nowy priorytet 19
+$ 10808 (process ID): stary priorytet 0, nowy priorytet 19
 
 
 4) Po zmianie priorytetu - "top u $USER":
