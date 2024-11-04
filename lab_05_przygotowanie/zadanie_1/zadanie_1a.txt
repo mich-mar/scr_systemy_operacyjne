@@ -1,0 +1,8 @@
+Zad. 1a. Najważniejsze opcje "strace":
+    -e: Umożliwia filtrowanie wywołań systemowych, na przykład -e trace=open śledzi tylko wywołania open.
+    -f: Śledzi również procesy potomne tworzony przez fork() oraz clone().
+    -p <pid>: Pozwala na śledzenie już uruchomionego procesu o podanym identyfikatorze (PID).
+    -o <plik>: Zapisuje wynik do pliku zamiast wyświetlania go na standardowym wyjściu.
+    -c: Zlicza wywołania systemowe oraz czasy ich trwania, zamiast ich szczegółowego wyjścia.
+    -s <rozmiar>: Określa maksymalny rozmiar wyświetlanych argumentów (domyślnie 32 bajty).
+    -tt: Włącza dokładny znacznik czasu dla każdego wywołania.

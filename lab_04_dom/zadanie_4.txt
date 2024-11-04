@@ -1,0 +1,35 @@
+# 0) yes "hej" | cat | cat
+
+# 1) ps -ef
+#UID          PID    PPID  C STIME TTY          TIME CMD
+#michal    425129   33067  0 17:42 pts/0    00:00:00 yes hello
+#michal    425130   33067  0 17:42 pts/0    00:00:00 cat
+#michal    425131   33067  1 17:42 pts/0    00:00:02 cat
+
+# 2) ls -l /proc/425129/fd
+#razem 0
+#lrwx------ 1 michal michal 64 lis  3 17:47 0 -> /dev/pts/0
+#l-wx------ 1 michal michal 64 lis  3 17:47 1 -> 'pipe:[734744]'
+#lrwx------ 1 michal michal 64 lis  3 17:47 2 -> /dev/pts/0
+# > deskryptor 0 (stdin) -  jest podłączony do terminala /dev/pts/0, co oznacza, że proces yes hello czyta dane z terminala
+# > deskryptor 1 (stdout) - jest skierowany do potoku pipe:[734744]. To oznacza, że yes przesyła dane wyjściowe do potoku 734744.
+
+# 3) ls -l /proc/425130/fd
+#razem 0
+#lr-x------ 1 michal michal 64 lis  3 17:47 0 -> 'pipe:[734744]'
+#l-wx------ 1 michal michal 64 lis  3 17:47 1 -> 'pipe:[734746]'
+#lrwx------ 1 michal michal 64 lis  3 17:47 2 -> /dev/pts/0
+# > deskryptor 0 (stdin) - jest skierowany do potoku pipe:[734744], co oznacza, że proces cat odbiera dane z potoku pochodzącego od procesu yes.
+# > deskryptor 1 (stdout) - jest skierowany do nowego potoku pipe:[734746]. Proces cat wysyła dane do kolejnego potoku, przekazując je dalej do kolejnego procesu.
+
+# 4) ls -l /proc/425131/fd
+#lr-x------ 1 michal michal 64 lis  3 17:48 0 -> 'pipe:[734746]'
+#lrwx------ 1 michal michal 64 lis  3 17:48 1 -> /dev/pts/0
+#lrwx------ 1 michal michal 64 lis  3 17:48 2 -> /dev/pts/0
+# > deskryptor 0 (stdin) - jest skierowany do potoku pipe:[734746], co oznacza, że proces cat odbiera dane z potoku pochodzącego od poprzedniego procesu cat.
+# > deskryptor 1 (stdout) - jest skierowany do terminala /dev/pts/0, co oznacza, że cat kończy potok, wyświetlając dane na terminalu.
+
+# 5) Odpowiedź:
+# Na podstawie identyfikatorów potoków w deskryptorach stdin i stdout można stwierdzić,
+# że kolejność procesów w potoku jest następująca: yes hello -> cat -> cat
+# Potwierdzają to identyfikatory potoków (pipe:[734744] i pipe:[734746]), które łączą procesy w odpowiedniej kolejności.

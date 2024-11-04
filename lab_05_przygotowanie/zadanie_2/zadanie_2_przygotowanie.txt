@@ -1,0 +1,31 @@
+Opcje programu truss w Solaris:
+
+1. -r:
+   Wyświetla tylko wywołania systemowe,
+   które zakończyły się błędem.
+   Przykład:
+   truss -r ./nazwa_programu
+
+2. -s:
+   Określa liczbę bajtów do wyświetlenia
+   dla argumentów wywołań systemowych.
+   Przykład:
+   truss -s 80 ./nazwa_programu
+
+3. -t:
+   Filtrowanie wywołań systemowych
+   według typu (np. read, write).
+   Przykład:
+   truss -t read,write ./nazwa_programu
+
+4. -u:
+   Wyświetla dodatkowe informacje o
+   użytkowniku, który uruchomił proces.
+   Przykład:
+   truss -u ./nazwa_programu
+
+5. -w:
+   Śledzi wywołania systemowe w czasie
+   rzeczywistym.
+   Przykład:
+   truss -w ./nazwa_programu
