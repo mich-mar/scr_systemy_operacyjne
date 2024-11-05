@@ -3,11 +3,9 @@
 
 int main() {
     char *username = getenv("LOGNAME");
-    if (username != NULL) {
-        printf("Hello, %s!\n", username);
-    } else {
-        printf("Hello, world.\n");
-    }
+
+    printf("Hello, %s!\n", username);
+
     return 0;
 }
 
@@ -62,3 +60,17 @@ int main() {
 // printf("Hello, %s!\n", "michal"Hello, michal!
 // )                                                                           = 15
 // +++ exited (status 0) +++
+
+//3) wnioski:
+//strace śledzi wywołania systemowe, co oznacza, że pokazuje wszystkie operacje komunikacji z jądrem systemu operacyjnego
+//(np. otwieranie plików, alokacje pamięci, zmiany uprawnień dostępu itp.). Przykłady wywołań widocznych w strace to execve,
+//mmap, access, openat, write, exit_group i inne, czyli funkcje, które bezpośrednio angażują jądro systemu operacyjnego.
+//ltrace śledzi natomiast wywołania funkcji bibliotecznych (standardowych funkcji z bibliotek C, takich jak getenv czy printf).
+//ltrace pozwala zobaczyć, jak program korzysta z bibliotek, ale nie wnika w komunikację z jądrem, co skutkuje bardziej
+//"wysokopoziomowym" wglądem w działanie programu.
+//
+//W podanym przykładzie:
+//strace pokazuje dużo szczegółów dotyczących zarządzania pamięcią i zasobami, np. użycia mmap, mprotect, czy brk,
+//a także wywołanie write, które bezpośrednio angażuje jądro w celu wyświetlenia tekstu na ekranie.
+//ltrace ogranicza się do pokazania wywołania getenv("LOGNAME"), które uzyskuje zmienną środowiskową LOGNAME,
+//oraz printf, który generuje komunikat powitalny „Hello, michal!”.
