@@ -3,7 +3,7 @@
 michal     28281   27942 99 12:14 pts/0    00:01:05 ./zadanie_2
 
 2) cat /proc/28281/status | grep Sig
-SigQ:   0/124791 - liczba sygnałów w kolejce oczekujących na obsługę (aktualnie/limit)
+SigQ:   0/124791 - liczba sygnałów w kolejce oczekujących na obsługę (ktualnie/limit)
 SigPnd: 0000000000000000 - sygnały oczekujące na obsługę w kontekście procesu
 SigBlk: 0000000000000004 - sygnały zablokowane przez proces
 SigIgn: 0000000000002000 - sygnały ignorowane przez proces
@@ -11,20 +11,20 @@ SigCgt: 0000000000004a00 - sygnały przechwycone przez proces, czyli sygnały, d
 
 
 ================================= ZADANIE 3 - SOLARIS ==================================================================
-1) mmarkuze@diablo:~$ pflags 17751
+1) mmarkuze@diablo:~/Dokumenty/SCR_systemy_operacyjne/lab_04_dom$ pflags 17751
 17751:  ./zadanie_2
        data model = _ILP32  flags = MSACCT|MSFORK
 /1:    flags = 0
        sigmask = 0x0001e000,0x00000000
 
-> (MSACCT) - proces ma włączone szczegółowe śledzenie zasobów (MSACCT)
+> (MSACCT) - ma włączone szczegółowe śledzenie zasobów (MSACCT)
 > (MSFORK) - proces jest gotowy lub zdolny do tworzenia nowych procesów
 > (_IPL32) określa model danych używany przez proces (rozmiary typów int, long, i wskaźników są 32-bitowe)
-> (sigmask) - wskazuje na maskę sygnałów procesu – sygnały, które są aktualnie zablokowane w danym procesie
+> (sigmask) - wskazują na maskę sygnałów procesu – sygnały, które są aktualnie zablokowane w danym procesie
 
 
 ================================= ZADANIE 4 - LINUX ====================================================================
-0) yes "hello" | cat | cat
+0) yes "hej" | cat | cat
 
 1) ps -ef
 UID          PID    PPID  C STIME TTY          TIME CMD
@@ -56,8 +56,8 @@ lrwx------ 1 michal michal 64 lis  3 17:48 2 -> /dev/pts/0
 > deskryptor 1 (stdout) - jest skierowany do terminala /dev/pts/0, co oznacza, że cat kończy potok, wyświetlając dane na terminalu.
 
 5) Odpowiedź:
-Na podstawie identyfikatorów potoków w deskryptorach stdin (0) i stdout (1) można stwierdzić,
-że kolejność procesów w potoku jest następująca: yes "hello" -> cat -> cat
+Na podstawie identyfikatorów potoków w deskryptorach stdin i stdout można stwierdzić,
+że kolejność procesów w potoku jest następująca: yes hello -> cat -> cat
 Potwierdzają to identyfikatory potoków (pipe:[734744] i pipe:[734746]), które łączą procesy w odpowiedniej kolejności.
 
 
@@ -109,19 +109,19 @@ mmarkuze 20448 20443   1 18:04:41 pts/4       0:03 cat
 
 6) Wnioski:
 - Proces 20447 (yes hej):
-Deskryptor 1 (standardowe wyjście) jest S_IFIFO (czyli FIFO/potok) i ma ten sam ino (inode) co deskryptor
-pliku 0 w procesie 20448. Znaczy to,że yes "hej" przekierowuje swoje wyjście do cat.
+Deskryptor pliku 1 (standardowe wyjście) jest S_IFIFO (czyli FIFO/potok) i ma ten sam ino (inode) co deskryptor
+pliku 0 w procesie 20448 (cat). To sugeruje, że yes hej przekierowuje swoje wyjście do cat.
 
 - Proces 20448 (cat):
-Deskryptor 0 (standardowe wejście) wskazuje na potok o identyfikatorze ino:34245, co odpowiada wyjściu z procesu 20447 (yes "hej").
-Deskryptor pliku 1 (standardowe wyjście) jest również S_IFIFO (potok) i ma ino:34246, który jest używany jako deskryptor
-pliku 0 w kolejnym procesie, 20449 (cat). Oznacza to, że cat przesyła swoje dane wyjściowe do kolejnego procesu cat.
+Deskryptor pliku 0 (standardowe wejście) wskazuje na potok o identyfikatorze ino:34245, co odpowiada wyjściu z procesu 20447.
+Deskryptor pliku 1 (standardowe wyjście) jest również S_IFIFO i ma ino:34246, który jest używany jako deskryptor
+pliku 0 w kolejnym procesie, 20449 (cat), wskazując, że cat przesyła swoje dane wyjściowe do kolejnego cat.
 
 - Proces 20449 (cat):
-Deskryptor pliku 0 (standardowe wejście) odnosi się do tego samego ino:34246, co deskryptor 1 (standardowe wyjście) w procesie 20448.
-To oznacza, że dane przepływają z jednego procesu cat (20448) do drugiego (20449).
+Deskryptor pliku 0 odnosi się do tego samego ino:34246, co deskryptor pliku 1 w procesie 20448. To wskazuje,
+że dane przepływają z jednego procesu cat do drugiego.
 
-- Identyfikatory "ino" w odpowiednich deskryptorach wskazują na hierarchiczność procesów w wywołanym potoku.
+- identyfikatory "ino" w odpowiednich deskryptorach wskazują na hierarchiczność procesów w wywołanym potoku
 
 
 

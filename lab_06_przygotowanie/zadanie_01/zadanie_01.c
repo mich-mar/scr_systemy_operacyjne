@@ -1,66 +1,47 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
-
 int main(int argc, char *argv[]) {
-    system("python3 random_file.py");
-
-    int potok_fd[2];
+    int potok_fd[2], status;
     pid_t pid;
 
     // pkt A - utworzenie potoku
-    if (pipe(potok_fd) == -1) {
-        // "perror" to odpowiednik "std::cerr" w c
-        perror("Błąd przy tworzeniu potoku");
-        exit(1);
-    }
+    pipe(potok_fd);
 
     // pkt B - utworzenie podprocesu
     pid = fork();
-    if (pid == -1) {
-        perror("Błąd przy tworzeniu podprocesu");
-        exit(1);
-    }
+    // Wartość -1: Wystąpił błąd, co oznacza, że proces potomny nie został utworzony.
+    // Wartość 0: Znajdujemy się w procesie potomnym.
+    // Wartość PID > 0: Znajdujemy się w procesie rodzica (zwracany PID to PID procesu potomnego).
 
     // === proces rodzica ===
     if (pid != 0) {
         close(potok_fd[0]); // zamknięcie końca odczytu potoku (nieużywany przez rodzica)
 
-        // pkt C - otwarcie pliku tekstowego
-        int plik_fd = open(argv[1], O_RDONLY);
-        if (plik_fd == -1) {
+        // pkt C - otwarcie pliku tekstowego z fopen
+        FILE *plik = fopen(argv[1], "r");
+        if (plik == NULL) {
             perror("Błąd przy otwieraniu pliku");
             close(potok_fd[1]);
             exit(1);
         }
 
-        // wysyłanie zawartości pliku przez potok
         char bufor[BUFSIZ];
         int licz;
 
-        while ((licz = read(plik_fd, bufor, BUFSIZ)) > 0) {
-            if (write(potok_fd[1], bufor, licz) == -1) {
-                perror("Błąd przy zapisie do potoku");
-                close(plik_fd);
-                close(potok_fd[1]);
-                exit(1);
-            }
+        // pkt C - wysyłanie zawartości pliku przez potok za pomocą fread
+        while ((licz = fread(bufor, 1, BUFSIZ, plik)) > 0) {
+            write(potok_fd[1], bufor, licz);  // zapis do potoku
         }
 
-        if (licz == -1) {
-            perror("Błąd przy odczycie z pliku");
-        }
-
-        close(plik_fd); // zamknięcie pliku
+        fclose(plik); // zamknięcie pliku
         close(potok_fd[1]); // zamknięcie końca zapisu potoku
 
         // oczekiwanie na zakończenie procesu potomnego
-        wait(NULL);
+        wait(&status);
     }
 
     // === proces potomny ===
@@ -72,18 +53,13 @@ int main(int argc, char *argv[]) {
 
         // pkt D - odczytywanie danych z potoku i wyświetlanie na ekranie
         while ((licz = read(potok_fd[0], bufor, BUFSIZ)) > 0) {
-            write(1, "@@@ ", 5);
-            write(1, bufor, licz);
-            write(1, " ###\n", 6);
+            write(1, "@@@ ", 5);          // znacznik przed buforem
+            write(1, bufor, licz);        // zawartość bufora
+            write(1, " ###\n", 6);       // znacznik po buforze
         }
 
-        if (licz == -1) {
-            perror("Błąd przy odczycie z potoku");
-        }
-
-        close(potok_fd[0]); // zamknięcie końca odczytu potoku
-        exit(0); // zakończenie procesu potomnego
+        close(potok_fd[0]); // zamknięcie końca odczytu potokud
     }
 
-    return 0;
+    return(status);
 }
