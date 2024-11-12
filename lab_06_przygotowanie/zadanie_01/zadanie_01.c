@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
 
     // === proces rodzica ===
     if (pid != 0) {
-        close(potok_fd[0]); // Zamknięcie końca odczytu potoku (nieużywany przez rodzica)
+        close(potok_fd[0]); // zamknięcie końca odczytu potoku (nieużywany przez rodzica)
 
         // pkt C - otwarcie pliku tekstowego
         int plik_fd = open(argv[1], O_RDONLY);
