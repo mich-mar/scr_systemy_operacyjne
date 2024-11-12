@@ -1,0 +1,3 @@
+/home/michal/Documents/sem_5/SCR - Systemy Operacyjne/lab_06_przygotowanie/cmake-build-debug/CMakeFiles/lab_06_przygotowanie.dir
+/home/michal/Documents/sem_5/SCR - Systemy Operacyjne/lab_06_przygotowanie/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/michal/Documents/sem_5/SCR - Systemy Operacyjne/lab_06_przygotowanie/cmake-build-debug/CMakeFiles/rebuild_cache.dir
