@@ -1,5 +1,7 @@
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -33,6 +35,7 @@ int main(int argc, char *argv[]) {
         int licz;
 
         // pkt C - wysyłanie zawartości pliku przez potok za pomocą fread
+        // 1 oznacza 1 bajt
         while ((licz = fread(bufor, 1, BUFSIZ, plik)) > 0) {
             write(potok_fd[1], bufor, licz);  // zapis do potoku
         }
