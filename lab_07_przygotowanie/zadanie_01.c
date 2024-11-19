@@ -1,108 +1,74 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>      // Dla shm_open, O_RDWR
-#include <sys/mman.h>   // Dla mmap
-#include <unistd.h>     // Dla ftruncate, close
-#include <pthread.h>    // Dla pthread_mutex_t, pthread_cond_t
+#include <stdio.h>    
+#include <stdlib.h>   
+#include <fcntl.h>     
+#include <sys/mman.h>  
+#include <unistd.h>    
+#include <pthread.h>    
+#include <errno.h>      
+#include <string.h>    
 
-// Definicje zgodne z podanymi w zadaniu
-#define BABBLE_NAME "/SCR_GRUPA_4"  // Zmień na nazwę zgodną z twoją grupą laboratoryjną
-#define BABBLE_MODE 0777
-#define BABBLE_LIMIT 10
-#define BABBLE_LENGTH 80
+// stałe z plecenia do lab_07
+#define BABBLE_NAME "/Y01-42e"     
+#define BABBLE_MODE 0777           
+#define BABBLE_LIMIT 10          
+#define BABBLE_LENGTH 80        
 
-// Struktura pamięci współdzielonej
+// struktura przechowująca dane w pamięci współdzielonej
 struct babblespace {
-    pthread_mutex_t babble_mutex;      // Mutex do synchronizacji
-    pthread_cond_t babble_cond;        // Zmienna warunkowa do synchronizacji
-    int babble_first;                  // Indeks pierwszego komunikatu
-    int babble_total;                  // Liczba wszystkich komunikatów
-    char babbles[BABBLE_LIMIT][BABBLE_LENGTH];  // Tablica komunikatów
+    pthread_mutex_t babble_mutex; 
+    pthread_cond_t babble_cond;  
+    int babble_first;           
+    int babble_total;          
+    char babbles[BABBLE_LIMIT][BABBLE_LENGTH]; 
 };
 
-void initialize_shared_memory(struct babblespace *shared_memory) {
-    // Inicjalizacja mutexa i zmiennej warunkowej
-    pthread_mutexattr_t mutex_attr;
-    pthread_condattr_t cond_attr;
-
-    pthread_mutexattr_init(&mutex_attr);
-    pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(&shared_memory->babble_mutex, &mutex_attr);
-    pthread_mutexattr_destroy(&mutex_attr);
-
-    pthread_condattr_init(&cond_attr);
-    pthread_condattr_setpshared(&cond_attr, PTHREAD_PROCESS_SHARED);
-    pthread_cond_init(&shared_memory->babble_cond, &cond_attr);
-    pthread_condattr_destroy(&cond_attr);
-
-    // Inicjalizacja pól struktury
-    shared_memory->babble_first = 0;
-    shared_memory->babble_total = 0;
-    memset(shared_memory->babbles, 0, sizeof(shared_memory->babbles));
-}
-
-//    gcc -o babbler zadanie_01.c -lpthread
-
-
 int main() {
-    // Otwórz lub utwórz segment pamięci współdzielonej
-    int shm_fd = shm_open(BABBLE_NAME, O_RDWR | O_CREAT, BABBLE_MODE);
+    int shm_fd;                           
+    struct babblespace *shared_memory;       // wskaźnik do segmentu pamięci współdzielonej (musi być "struct" w c)
+
+    // 1a) otwórz istniejący segment pamięci współdzielonej
+    shm_fd = shm_open(BABBLE_NAME, O_RDWR, BABBLE_MODE);
+
+    // sprawdź czy otwarcie pamięci się udało
     if (shm_fd == -1) {
-        perror("shm_open");
-        exit(EXIT_FAILURE);
+        perror("Blad podczas otwarcia pamieci wspolnej\n");
+        exit(0);
     }
 
-    // Ustal rozmiar segmentu pamięci (na podstawie struktury)
-    size_t babblespace_size = sizeof(struct babblespace);
+    // 1b) mapowanie segmentu pamięci współdzielonej
+    shared_memory = (struct babblespace *)mmap(NULL, sizeof(struct babblespace),
+                                             PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 
-    // Jeśli segment został nowo utworzony, ustaw jego rozmiar
-    if (ftruncate(shm_fd, babblespace_size) == -1) {
-        perror("ftruncate");
-        close(shm_fd);
-        exit(EXIT_FAILURE);
-    }
-
-    // Mapowanie segmentu pamięci do przestrzeni adresowej procesu
-    struct babblespace *shared_memory = mmap(NULL, babblespace_size,
-                                             PROT_READ | PROT_WRITE,
-                                             MAP_SHARED, shm_fd, 0);
+    // sprawdź czy mapowanie się udało
     if (shared_memory == MAP_FAILED) {
-        perror("mmap");
+        perror("Mapowanie pamieci wspolnej sie nie powiodlo\n");
         close(shm_fd);
-        exit(EXIT_FAILURE);
+        exit(0);
     }
 
-    // Zamknij deskryptor pliku, ponieważ mmap już działa z segmentem pamięci
+    // 2) zablokowanie pamięci współdzielonej przy użyciu mutexa
+    pthread_mutex_lock(&(shared_memory->babble_mutex));
+
+    // 1c) wyświetlenie istniejących komunikatów w pamięci
+    printf("Komunikaty w pamieci:\n");
+
+    // ustawienie wskaźnika na pierwszy komunikat
+    int current_index = shared_memory->babble_first;
+
+    // pętla po wszystkich dostępnych komunikatach
+    for (int i = 0; i < shared_memory->babble_total; i++) {
+        printf("Wiadomosc nr%d: %s\n", i + 1, shared_memory->babbles[current_index]);
+        current_index = current_index + 1;
+    }
+
+    // 2) odblokowanie pamięci współdzielonej po zakończeniu operacji
+    pthread_mutex_unlock(&(shared_memory->babble_mutex));
+
+    // odmapowanie segmentu pamięci wspólnej
+    munmap(shared_memory, sizeof(struct babblespace));
+
+    // zamknięcie deskryptora segmentu pamięci
     close(shm_fd);
-
-    // Jeśli segment został nowo utworzony, zainicjalizuj strukturę
-    if (shared_memory->babble_total == 0 && shared_memory->babble_first == 0) {
-        printf("Inicjalizacja segmentu pamięci współdzielonej...\n");
-        initialize_shared_memory(shared_memory);
-    }
-
-    // Wyświetl komunikaty znajdujące się w pamięci współdzielonej
-    pthread_mutex_lock(&shared_memory->babble_mutex);  // Zablokuj mutex
-
-    int first = shared_memory->babble_first;
-    int total = shared_memory->babble_total;
-
-    printf("Wyświetlanie istniejących komunikatów (łącznie: %d):\n", total);
-
-    // Wyświetlenie komunikatów w odpowiedniej kolejności
-    for (int i = 0; i < total; ++i) {
-        int index = (first + i) % BABBLE_LIMIT;
-        printf("%d: %s\n", i + 1, shared_memory->babbles[index]);
-    }
-
-    pthread_mutex_unlock(&shared_memory->babble_mutex);  // Odblokuj mutex
-
-    // Odmapowanie pamięci przed zakończeniem programu
-    if (munmap(shared_memory, babblespace_size) == -1) {
-        perror("munmap");
-        exit(EXIT_FAILURE);
-    }
 
     return 0;
 }
