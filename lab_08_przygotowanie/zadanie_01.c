@@ -24,6 +24,7 @@ void* thread_function(void* arg) {
     pthread_exit(NULL);
 }
 
+// flagi: -lpthread -lm
 int main() {
     int num_threads = 5;  // Liczba wątków
     pthread_t threads[num_threads];
