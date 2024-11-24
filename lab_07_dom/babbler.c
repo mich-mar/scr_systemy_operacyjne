@@ -7,6 +7,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <stdbool.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 // stale z polecenia do lab_07
 #define BABBLE_NAME "/michal_michal"
@@ -76,7 +78,7 @@ void display_messages(struct babblespace *shared_memory) {
     pthread_mutex_unlock(&(shared_memory->babble_mutex));
 }
 
-// funkcja do pobierania komunikatu od użytkownika i dodawania go do pamięci wspólnej
+// funkcja do dodawania nowego komunikatu do pamięci wspólnej
 void add_user_message(struct babblespace *shared_memory) {
     char user_message[BABBLE_LENGTH];
     char formatted_message[BABBLE_LENGTH];
@@ -101,6 +103,8 @@ void add_user_message(struct babblespace *shared_memory) {
     else
         shared_memory->babble_first = (shared_memory->babble_first + 1) % BABBLE_LIMIT;
 
+    // sygnalizacja do wszystkich procesów, że komunikat został dodany
+    pthread_cond_broadcast(&(shared_memory->babble_cond));
 
     // odblokowanie pamięci wspólnej po dodaniu komunikatu
     pthread_mutex_unlock(&(shared_memory->babble_mutex));
@@ -133,9 +137,46 @@ int ask_for_decision() {
     return decision_int;
 }
 
+// Funkcja dla procesu potomnego do śledzenia nowych komunikatów
+void monitor_messages(struct babblespace *shared_memory) {
+    int last_read_total = 0;
+
+    while (true) {
+        // Zablokowanie pamięci wspólnej
+        pthread_mutex_lock(&(shared_memory->babble_mutex));
+
+        // Czekanie na sygnał od procesu dodającego komunikat
+        pthread_cond_wait(&(shared_memory->babble_cond), &(shared_memory->babble_mutex));
+
+        // Sprawdzenie, czy są nowe komunikaty do wyświetlenia
+        if (shared_memory->babble_total > last_read_total) {
+
+            // Wyświetlanie tylko nowych komunikatów
+            int current_index = (shared_memory->babble_first + last_read_total) % BABBLE_LIMIT;
+
+            for (int i = last_read_total; i < shared_memory->babble_total; i++) {
+                printf(" \n[Potomek] Wiadomosc nr %d: %s", i + 1, shared_memory->babbles[current_index]);
+                current_index = (current_index + 1) % BABBLE_LIMIT;
+            }
+
+            // Aktualizacja liczby przeczytanych komunikatów
+            last_read_total = shared_memory->babble_total;
+        }
+
+        // Odblokowanie pamięci wspólnej
+        pthread_mutex_unlock(&(shared_memory->babble_mutex));
+    }
+}
+
+
+
 
 // Komenda do tworzenia pamięci wspólnej
 // (cd ~/../witold/ && ./babbler_lin /michal_michal INIT)
+
+// Komenda do kopiwowania programu
+// scp babbler.c mmarkuze@panamint.kcir.pwr.edu.pl:/home/mmarkuze/Dokumenty/SCR_systemy_operacyjne/lab_07_dom/babbler.c
+
 int main() {
     int decision = 0;
     bool loop = true;
@@ -146,32 +187,52 @@ int main() {
     // Mapowanie segmentu pamięci wspólnej
     struct babblespace *shared_memory = map_shared_memory(shm_fd);
 
-    while (loop) {
-        decision = ask_for_decision();
+    // Utworzenie procesu potomnego
+    pid_t pid = fork();
 
-        switch (decision) {
-            case 1:
-                display_messages(shared_memory);
-                break;
+    if (pid == 0) {
+        // Proces potomny - monitorowanie komunikatów
+        printf("\nUworzenie procesu potomnego\n");
 
-            case 2:
-                add_user_message(shared_memory);
-                break;
-
-            case 3:
-                printf("\n Koniec programu\n");
-                loop = false;
-                break;
-
-            default: break;
-        }
+        monitor_messages(shared_memory);
     }
+    else if (pid > 0) {
+        // Proces rodzic - zarządzanie komunikatami
+        while (loop) {
 
-    // odmapowanie segmentu pamięci wspólnej
-    munmap(shared_memory, sizeof(struct babblespace));
+            decision = ask_for_decision();
 
-    // zamknięcie deskryptora segmentu pamięci
-    close(shm_fd);
+            switch (decision) {
+                case 1:
+                    display_messages(shared_memory);
+                    break;
+
+                case 2:
+                    add_user_message(shared_memory);
+                    break;
+
+                case 3:
+                    printf("\n Koniec programu\n");
+                    loop = false;
+                    break;
+
+                default: break;
+            }
+        }
+
+        // odmapowanie segmentu pamięci wspólnej
+        munmap(shared_memory, sizeof(struct babblespace));
+
+        // zamknięcie deskryptora segmentu pamięci
+        close(shm_fd);
+
+        // Zabicie procesu potomnego po zakończeniu
+        kill(pid, SIGKILL);
+    }
+    else {
+        perror("Błąd przy tworzeniu procesu potomnego\n");
+        exit(0);
+    }
 
     return 0;
 }
