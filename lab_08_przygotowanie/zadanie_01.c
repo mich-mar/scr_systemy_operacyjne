@@ -2,48 +2,38 @@
 #include <pthread.h>
 #include <math.h>
 
-// Deklaracja zmiennej bariery
-pthread_barrier_t barrier;
-
-// Funkcja, która będzie wykonywana przez każdy wątek
-void* thread_function(void* arg) {
+// funkcja, która będzie wykonywana przez każdy wątek
+// funkcja musi mieć składnie "void* function_name(void* arg)"
+void* print_hello(void* arg) {
     long thread_id = (long)arg;
     double wynik = 0;
 
-    // Czekanie na synchronizację z innymi wątkami
-    pthread_barrier_wait(&barrier);
+    // obliczanie logarytmów (opcjonalnie)
+    if (0)
+        for (int i = 1; i < 1000; ++i) wynik += log(i);
 
-    // Obliczanie logarytmów dla liczb od 1 do 10 (dla uproszczenia)
-    for (int i = 1; i < 10; ++i) {
-        wynik += log(i);
-    }
-
-    // Wyświetlanie komunikatu z identyfikatorem wątku
-    printf("Thread ID: %ld completed the calculations. Result: %lf\n", thread_id, wynik);
+    // wyświetlanie komunikatu z ID
+    printf("Hello OpSys. Written by thread ID: %ld\n", thread_id);
 
     pthread_exit(NULL);
 }
 
-// flagi: -lpthread -lm
+// kompilacja:
+// gcc zadanie_01.c -o myhello -lpthread -lm
 int main() {
-    int num_threads = 5;  // Liczba wątków
-    pthread_t threads[num_threads];
+    int threads_number = 5;
 
-    // Inicjalizacja bariery
-    pthread_barrier_init(&barrier, NULL, num_threads);
+    pthread_t threads[threads_number];
 
-    // Tworzenie wątków
-    for (long i = 0; i < num_threads; i++) {
-        pthread_create(&threads[i], NULL, thread_function, (void*)i);
+    // tworzenie wątków
+    for (long i = 0; i < threads_number; i++) {
+        pthread_create(&threads[i], NULL, print_hello, (void*)i);
     }
 
-    // Czekanie na zakończenie wszystkich wątków
-    for (int i = 0; i < num_threads; i++) {
+    // czekanie na zakończenie wszystkich wątków
+    for (int i = 0; i < threads_number; i++) {
         pthread_join(threads[i], NULL);
     }
-
-    // Zniszczenie bariery po zakończeniu programu
-    pthread_barrier_destroy(&barrier);
 
     return 0;
 }
