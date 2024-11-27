@@ -1,0 +1,103 @@
+================================================================
+zadanie 2a:
+
+output:
+    Suma 10000 liczb pierwszych począwszy od 2 wynosi: 496165411
+
+
+================================================================
+zadanie 2b:
+
+output:
+    Suma 10000 liczb pierwszych począwszy od 2 wynosi: 263885516
+    Suma 10000 liczb pierwszych począwszy od 2 wynosi: 270480014
+    Suma 10000 liczb pierwszych począwszy od 2 wynosi: 247557816
+
+wnioski:
+    Wersja wielowątkowa może nie dawać dokładnie tych samych wyników co wersja jednowątkowa z powodu
+    różnych problemów związanych z: synchronizacją wątków (wyścigi wątków, błędy synchronizacji)
+    oraz dostępem do danych w różnych wątkach.
+
+================================================================
+zadanie 2c:
+
+output:
+    Suma 10000 liczb pierwszych począwszy od 2 wynosi: 496165411
+
+
+================================================================
+pytania 2c:
+
+1) Czy teraz wersja wielowątkowa zawsze daje te same wyniki co wersja jednowątkowa?
+    Tak, jeśli muteksy są prawidłowo zaprogramowane i nie następują wyścigi czy inne niezdefiniowane zachowania
+    to dają te same wyniki.
+
+2) O ile szybciej działa wersja wielowątkowa od jednowątkowej (jeśli w ogóle działa szybciej)?
+    Przy wywołaniu programu z argumentami (1000000 2 6), dla procesora AMD Ryzen 7 7840HS z 8 rdzeniami fizycznymi
+    i 16 wątkami, czasy średnie wynoszą dla jednowątkowego i wielowątkowego programu odpowiednio:
+    8.84 sekundy i 1.997 sekundy. Drugi program jest 4.42 razy szybszy od pierwszego.
+
+3) Jeśli wersja wielowątkowa nie działa w każdym przypadku K razy szybciej niż jednowątkowa, to spróbuj wyjaśnić
+   dlaczego.
+    Drugi program jest 4.42 razy szybszy od pierwszego, co nie do końca pokrywa się z 6 krotnym przyśpieszeniem pracy.
+    Może to wynikać z:
+    - Obciążeniem procesowa związanego z tworzeniem, zarządzaniem wątkami i synchronizacją,
+    - Niepełnego wykorzystania wszystkich rdzeni,
+    - Potrzeby synchronizacji dostępu do wspólnych zasobów (muteksy),
+    - Ograniczenia wydajności związanego z lokalnością pamięci i zarządzaniem pamięcią,
+
+    output - program jednowątkowy:
+        Czas obliczeń: 8.38 sekund
+        Czas obliczeń: 9.06 sekund
+        Czas obliczeń: 9.09 sekund
+
+    output - program wielowątkowy:
+        Czas obliczeń: 1.93 sekund
+        Czas obliczeń: 2.10 sekund
+        Czas obliczeń: 1.96 sekund
+
+4) Podaj w raporcie z wykonania zadania kilka wybranych wartości obliczonych sum i odpowiednich czasów działania
+   programu z parametrami N i K. W szczególności oblicz sumę pierwszych ćwierć miliona liczb pierwszych, (N=250000;M=2)
+   oraz stu kolejnych liczb pierwszych poczynając od liczby 1000000 (N=100;M=1000000), i podaj w raporcie otrzymane
+   wartości oraz użytą liczbę K i czasy działania programu.
+
+   output (N=250000;M=2):
+       Argumenty: M=250000, N=2, K=6
+       Suma 250000 liczb pierwszych począwszy od 2 wynosi: 420257213289
+       Czas obliczeń: 0.35 sekund
+
+       Argumenty: M=250000, N=2, K=6
+       Suma 250000 liczb pierwszych począwszy od 2 wynosi: 420257213289
+       Czas obliczeń: 0.41 sekund
+
+       Argumenty: M=250000, N=2, K=6
+       Suma 250000 liczb pierwszych począwszy od 2 wynosi: 420257213289
+       Czas obliczeń: 0.42 sekund
+
+   output (N=100;M=1000000):
+       Argumenty: M=100, N=1000000, K=6
+       Suma 100 liczb pierwszych począwszy od 1000000 wynosi: 100065408
+       Czas obliczeń: 0.00 sekund
+
+   output (N=10000;M=1000000):
+       Argumenty: M=10000, N=1000000, K=6
+       Suma 10000 liczb pierwszych począwszy od 1000000 wynosi: 10691067100
+       Czas obliczeń: 0.02 sekund
+
+   output (N=100000;M=1000000):
+       Argumenty: M=100000, N=1000000, K=6
+       Suma 100000 liczb pierwszych począwszy od 1000000 wynosi: 170866510610
+       Czas obliczeń: 0.16 sekund
+
+       Argumenty: M=100000, N=1000000, K=6
+       Suma 100000 liczb pierwszych począwszy od 1000000 wynosi: 170866510600
+       Czas obliczeń: 0.16 sekund
+
+
+
+
+
+
+
+
+
