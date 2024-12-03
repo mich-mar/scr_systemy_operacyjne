@@ -1,5 +1,5 @@
 /******************************************************************************
-* FILE: bug1.c
+* FILE: bug1fix.c
 * DESCRIPTION:
 *   This example has a bug. It is a variation on the condvar.c example. 
 *   Instead of just one thread waiting for the condition signal, there are

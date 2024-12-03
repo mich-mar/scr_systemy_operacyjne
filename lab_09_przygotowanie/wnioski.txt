@@ -1,0 +1,20 @@
+=============== bug1.c ===============
+
+Analiza problemu: W programie bug1 c występuje problem związany z użyciem zmiennych warunkowych(pthread_cond_wait),
+ gdy wiele wątków czeka na ten sam sygnał
+ W tym przypadku cztery wątki(watch_count) czekają na osiągnięcie progu COUNT_LIMIT,
+ ale tylko jeden wątek jest sygnalizowany przez pthread_cond_signal
+
+Dlaczego to się dzieje?
+- pthread_cond_signal() budzi tylko jeden losowy wątek oczekujący na zmiennej warunkowej.
+- Aby obudzić wszystkie oczekujące wątki, należy użyć pthread_cond_broadcast().
+    
+
+
+=============== bug4.c ===============
+
+Analiza problemu w bug4.c:
+ Program zawiera potencjalne warunki wyścigu przy użyciu zmiennych warunkowych. Problem pojawia się,
+ gdy wątek sub1 może przejść do oczekiwania na sygnał (pthread_cond_wait) po tym, jak został on już
+ wysłany przez sub2. W takim przypadku sub1 będzie czekać w nieskończoność, ponieważ sygnał został
+ utracony, co prowadzi do zawieszenia programu.

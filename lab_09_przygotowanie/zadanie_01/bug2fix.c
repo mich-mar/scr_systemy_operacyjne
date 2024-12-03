@@ -42,7 +42,7 @@ void *Hello(void *threadid) {
 
 int main(int argc, char *argv[]) {
     pthread_t threads[NTHREADS];
-    size_t stacksize;
+    size_t stacksize, new_stacksize;
     int rc;
     long t;
     pthread_attr_init(&attr);
@@ -52,11 +52,12 @@ int main(int argc, char *argv[]) {
     // pthread_attr_getstacksize(&attr, &stacksize);
 
     // nowa wersja
-    stacksize = ARRAY_SIZE * sizeof(double) + MEGEXTRA; // <==
-    pthread_attr_setstacksize(&attr, stacksize); // <==
+    new_stacksize = ARRAY_SIZE * sizeof(double) + MEGEXTRA; // <==
     pthread_attr_getstacksize(&attr, &stacksize); // <==
-
-    printf("Thread stack size = %li bytes (hint, hint)\n", stacksize);
+    printf("Thread stack pierwsze size  = %li bytes (hint, hint)\n", stacksize);
+    pthread_attr_setstacksize(&attr, new_stacksize); // <==
+    pthread_attr_getstacksize(&attr, &stacksize); // <==
+    printf("Thread stack drugie size = %li bytes (hint, hint)\n", stacksize);
     for (t = 0; t < NTHREADS; t++) {
         rc = pthread_create(&threads[t], &attr, Hello, (void *) t);
         if (rc) {

@@ -3,63 +3,59 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define N 5    // Liczba synów
-#define S 3    // Liczba prób na syna
-#define X 5    // Liczba wierszy w tablicy
-#define Y 5    // Liczba kolumn w tablicy
+#define N 5    // liczba synów
+#define S 3    // liczba prób dla każdego syna
+#define X 5    // liczba wierszy
+#define Y 5    // liczba kolumn
 
-int terytoria[X][Y]; // Tablica terytoriów
-pthread_mutex_t mutex; // Mutex do synchronizacji
-pthread_cond_t cond;   // Zmienna warunkowa do sygnalizowania
-int zakończeni_synowie = 0;  // Licznik zakończonych synów
+int pola[X][Y]; // tablica pól
+pthread_mutex_t mutex; // mutex do synchronizacji
+pthread_cond_t syn_koniec;   // zmienna warunkowa do sygnalizowania
+int zakonczeni_synowie = 0;  // Licznik zakończonych synów
 
-// Funkcja, którą wykonują synowie
 void *syn(void *arg) {
     int id = (int)arg;   // Numer syna
-    int szansa = 0;      // Liczba zdobytych terytoriów przez tego syna
+    int szansa = 0;      // liczba zdobytych terytoriów przez tego syna
     int x, y;
 
     while (szansa < S) {
-        // Losowanie współrzędnych terytorium (używamy drand48() do losowania)
-        x = (int)(drand48() * X);  // Losowanie wiersza
-        y = (int)(drand48() * Y);  // Losowanie kolumny
+        x = (int)(drand48() * X);
+        y = (int)(drand48() * Y);
 
         pthread_mutex_lock(&mutex);
 
-        if (terytoria[x][y] == -1) {  // Sprawdzamy, czy terytorium jest wolne
-            terytoria[x][y] = id;    // Zajmujemy terytorium
-            szansa++;  // Zwiększamy liczbę zajętych terytoriów
-        }
+        if (pola[x][y] == -1)  // sprawdzamy, czy pole jest wolne
+            pola[x][y] = id;    // zajmujemy pole (id syna)
 
+
+        szansa++;  // Zwiększamy liczbę zużytych szans
         pthread_mutex_unlock(&mutex);
     }
 
-    // Kiedy syn zakończy swoje próby, zwiększamy licznik zakończonych synów
     pthread_mutex_lock(&mutex);
-    zakończeni_synowie++;
-    pthread_cond_signal(&cond);  // Sygnalizujemy, że jeden syn zakończył
+    zakonczeni_synowie++; // zwiększamy licznik zakończonych synów
+    pthread_cond_signal(&syn_koniec);  // sygnalizujemy koniec pracy dla jednego syna
     pthread_mutex_unlock(&mutex);
 
     pthread_exit(NULL);
 }
 
-// Funkcja wykonująca rolę Rejenta
 void *rejent(void *arg) {
     // Czekamy, aż wszyscy synowie zakończą swoje próby
-    while (zakończeni_synowie < N) {
+    while (zakonczeni_synowie < N) {
         pthread_mutex_lock(&mutex);
-        pthread_cond_wait(&cond, &mutex);  // Czekamy na sygnał od synów
+        pthread_cond_wait(&syn_koniec, &mutex);  // Czekamy na sygnał od synów
         pthread_mutex_unlock(&mutex);
     }
 
-    // Po zakończeniu przez wszystkich synów, zliczamy wolne terytoria
-    printf("Podsumowanie terytoriów:\n");
+    // Po zakończeniu przez wszystkich synów, zliczamy wolne pola
+    printf("pola:\n");
     for (int i = 0; i < X; i++) {
         for (int j = 0; j < Y; j++) {
-            if (terytoria[i][j] == -1) {
-                printf("[_] ");  // Puste terytorium
+            if (pola[i][j] == -1) {
+                printf("[_] ");
             } else {
-                printf("[%d] ", terytoria[i][j]);  // Zajęte terytorium
+                printf("[%d] ", pola[i][j]);
             }
         }
         printf("\n");
@@ -69,41 +65,38 @@ void *rejent(void *arg) {
 }
 
 void game() {
-    pthread_t threads[N + 1];  // N wątków synów + 1 wątek Rejenta
-    pthread_attr_t attr;
+    pthread_t threads[N + 1];
     pthread_mutex_init(&mutex, NULL);
-    pthread_cond_init(&cond, NULL);
+    pthread_cond_init(&syn_koniec, NULL);
 
-    // Inicjalizacja tablicy terytoriów (-1 oznacza, że terytorium jest wolne)
+    // inicjalizacja tablicy terytoriów (-1 dla wolnego pola)
     for (int i = 0; i < X; i++) {
         for (int j = 0; j < Y; j++) {
-            terytoria[i][j] = -1;
+            pola[i][j] = -1;
         }
     }
 
-    // Tworzymy wątki dla synów
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+    // wątki synów
     for (int i = 0; i < N; i++) {
-        pthread_create(&threads[i], &attr, syn, (void *)(i));
+        pthread_create(&threads[i], NULL, syn, (void *)(i));
     }
 
-    // Tworzymy wątek dla Rejenta
-    pthread_create(&threads[N], &attr, rejent, NULL);
+    // wątek rejenta
+    pthread_create(&threads[N], NULL, rejent, NULL);
 
-    // Czekamy na zakończenie wszystkich wątków
+    // czekanie na zakończenie wszystkich wątków
     for (int i = 0; i < N + 1; i++) {
         pthread_join(threads[i], NULL);
     }
 
-    // Sprzątanie
-    pthread_attr_destroy(&attr);
+    // usuwanie muteksu i warunków
     pthread_mutex_destroy(&mutex);
-    pthread_cond_destroy(&cond);
+    pthread_cond_destroy(&syn_koniec);
 }
 
 int main() {
     for (int i = 0; i < 10; i++) {
+        zakonczeni_synowie = 0;
         game();
         printf("\n");
     }

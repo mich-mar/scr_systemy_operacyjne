@@ -33,8 +33,10 @@ int main(int argc, char *argv[]) {
     pthread_attr_t attr;
     int rc;
     long t;
+
     pthread_attr_init(&attr);
     pthread_attr_getstacksize(&attr, &stacksize);
+
     printf("Thread stack size = %li bytes (hint, hint)\n", stacksize);
     for (t = 0; t < NTHREADS; t++) {
         rc = pthread_create(&threads[t], NULL, Hello, (void *) t);
