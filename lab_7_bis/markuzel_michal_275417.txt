@@ -1,0 +1,55 @@
+zadanie 1:
+	Udało się pobrać system VPN na system operacyjny Ubuntu 22.04.4 LTS. Instalacja była
+	również wykonywana wcześniej na systemie Windows 11 (dostęp do NX Siemens przez VPN).
+	
+zadanie 2a:
+	Udało się znaleźć i popbrać artykuł z serwisu źródłowego Arxiv.
+	
+zadanie 2b:
+	By rozłączyć połączenie z VPN została uruchomiona aplikacja Global Protect VPN i nacisnięty
+	przycisk "disconect". Pobranie wyżej wymienionego artykułu jak innych artykółów ze strony
+	biblioteki politechniki nadal było możliwe.
+
+zadanie 3:
+	Nie udało się połaczyć ze stroną "inyo.kcir.pwr.edu.pl"
+	
+zadanie 4a:
+	Działu Informatyzacji PWr nie posiadał żadnej instrukcji do instalacji systemu Global Protect VPN,
+	na mój system operacyjny.
+
+	"[...] Instrukcja dostępna na oficjalnej stronie PaloAlto Networks."
+	
+zadanie 4b:
+	Instalacja systemu nie sprawiała problemów i nie powodowała dodatkowych problemów.
+	Konfiguracja tego systemu, jego aktywacja i dezaktywacja, była przyjemna i dużo łatwiejsza
+	niż konfiguracja np. sieci enduroam.
+	
+zadanie 4c:
+	Praca z Global Protect VPN była zupełnie przezroczysta i nie powodowała żadnych uciążliwości,
+	efektów ubocznych, poza dłuższym ładowaniem stron lub potrzeb ich wielokrotnego odświerzania,
+	co jednak nie jest zaskakujące dla systemów VPN.
+	
+
+Streszczenie:  
+Zadanie 1: Na Ubuntu 22.04.4 LTS zainstalowano system VPN Global Protect. Wcześniej instalacja była przeprowadzona na Windows 11 (dostęp do NX Siemens przez VPN).  
+Zadanie 2a: Znaleziono i pobrano artykuł z Arxiv.  
+Zadanie 2b: Po rozłączeniu VPN przez aplikację Global Protect (przycisk „disconnect”) nadal możliwe było pobieranie artykułów z biblioteki politechniki.  
+Zadanie 3: Nie udało się połączyć ze stroną „inyo.kcir.pwr.edu.pl”.  
+**Zadanie 4a:** Dział Informatyzacji PWr nie dostarczył instrukcji instalacji Global Protect VPN na Ubuntu. Pomocna okazała się dokumentacja PaloAlto Networks.  
+**Zadanie 4b:** Instalacja i konfiguracja systemu przebiegły bez problemów, były łatwiejsze niż konfiguracja sieci Eduroam.  
+**Zadanie 4c:** Global Protect działał stabilnie, choć czasami strony ładowały się wolniej lub wymagały odświeżania, co jest typowe dla VPN.  
+
+Zadanie_1: Udało_się_pobrać_system_VPN_na_system_operacyjny_Ubuntu_22.04.4_LTS._Instalacja_była_również_wykonywana_wcześniej_na_systemie_Windows_11_(dostęp_do_NX_Siemens_przez_VPN).  
+
+Zadanie_2a: 
+Udało_się_znaleźć_i_pobrać_artykuł_z_serwisu_źródłowego_Arxiv.  
+
+Zadanie_2b: By_rozłączyć_połączenie_z_VPN_została_uruchomiona_aplikacja_Global_Protect_VPN_i_naciśnięty_przycisk_"disconnect"._Pobranie_wyżej_wymienionego_artykułu_jak_innych_artykułów_ze_strony_biblioteki_politechniki_nadal_było_możliwe.  
+
+Zadanie_3: Nie_udało_się_połączyć_ze_stroną_"inyo.kcir.pwr.edu.pl".  
+
+Zadanie_4a: Działu_Informatyzacji_PWr_nie_posiadał_żadnej_instrukcji_do_instalacji_systemu_Global_Protect_VPN,_na_mój_system_operacyjny._"Instrukcja_dostępna_na_oficjalnej_stronie_PaloAlto_Networks."  
+
+Zadanie_4b: Instalacja_systemu_nie_sprawiała_problemów_i_nie_powodowała_dodatkowych_problemów._Konfiguracja_tego_systemu,_jego_aktywacja_i_dezaktywacja,_była_przyjemna_i_dużo_łatwiejsza_niż_konfiguracja_np._sieci_Eduroam.  
+
+Zadanie_4c: Praca_z_Global_Protect_VPN_była_zupełnie_przezroczysta_i_nie_powodowała_żadnych_uciążliwości,_efektów_ubocznych,_poza_dłuższym_ładowaniem_stron_lub_potrzebą_ich_wielokrotnego_odświeżania,_co_jednak_nie_jest_zaskakujące_dla_systemów_VPN.

@@ -3,18 +3,18 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define N 5    // liczba synów
-#define S 3    // liczba prób dla każdego syna
-#define X 5    // liczba wierszy
+#define N 10    // liczba synów
+#define S 10    // liczba prób dla każdego syna
+#define X 10    // liczba wierszy
 #define Y 5    // liczba kolumn
 
 int pola[X][Y]; // tablica pól
 pthread_mutex_t mutex; // mutex do synchronizacji
-pthread_cond_t syn_koniec;   // zmienna warunkowa do sygnalizowania
+pthread_cond_t syn_koniec;   // zmienna warunkowa do sygnalizowania końca pracy syna
 int zakonczeni_synowie = 0;  // Licznik zakończonych synów
 
 void *syn(void *arg) {
-    int id = (int)arg;   // Numer syna
+    int id = (int)arg;   // numer syna
     int szansa = 0;      // liczba zdobytych terytoriów przez tego syna
     int x, y;
 
@@ -25,8 +25,14 @@ void *syn(void *arg) {
         pthread_mutex_lock(&mutex);
 
         if (pola[x][y] == -1)  // sprawdzamy, czy pole jest wolne
+        {
             pola[x][y] = id;    // zajmujemy pole (id syna)
-
+            printf(":) syn nr %d przejął pole [%i,%i]\n",id,x,y);    // komunikat o zajeciu pól
+        }
+        else
+        {
+             printf(":( syn nr %d nie przejął pola [%i,%i]\n",id,x,y);    // komunikat o nie zajeciu pól
+        }
 
         szansa++;  // Zwiększamy liczbę zużytych szans
         pthread_mutex_unlock(&mutex);
@@ -41,25 +47,29 @@ void *syn(void *arg) {
 }
 
 void *rejent(void *arg) {
-    // Czekamy, aż wszyscy synowie zakończą swoje próby
+    // czekamy, aż wszyscy synowie zakończą swoje próby
     while (zakonczeni_synowie < N) {
         pthread_mutex_lock(&mutex);
-        pthread_cond_wait(&syn_koniec, &mutex);  // Czekamy na sygnał od synów
+        pthread_cond_wait(&syn_koniec, &mutex); // czekamy na sygnał od synów
         pthread_mutex_unlock(&mutex);
     }
 
-    // Po zakończeniu przez wszystkich synów, zliczamy wolne pola
+    // po zakończeniu przez wszystkich synów, zliczamy wolne pola
+    int puste = 0;
     printf("pola:\n");
     for (int i = 0; i < X; i++) {
         for (int j = 0; j < Y; j++) {
             if (pola[i][j] == -1) {
                 printf("[_] ");
+                puste++;
             } else {
                 printf("[%d] ", pola[i][j]);
             }
         }
         printf("\n");
     }
+
+    printf("ilosc pustych pol: %d\n",puste);
 
     pthread_exit(NULL);
 }
@@ -95,8 +105,9 @@ void game() {
 }
 
 int main() {
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 1; i++) {
         zakonczeni_synowie = 0;
+        printf("zmienne: N=%d, S=%d, X=%d, Y=%d\n",N,S,X,Y);
         game();
         printf("\n");
     }
