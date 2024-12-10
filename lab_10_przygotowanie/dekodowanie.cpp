@@ -4,22 +4,27 @@
 #include <openssl/md5.h>
 #include <cctype>
 
-#define MAX_WORD_LENGTH 256
-#define MAX_HASHES 1000
+#define MAX_HASHES_SIZE 1000
+#define MAX_DICTIONARY_SIZE 1000
 #define MD5_HASH_LENGTH 32
+#define MAX_WORD_LENGTH 256
+
+char dict[MAX_DICTIONARY_SIZE][MAX_WORD_LENGTH + 1];
+char hashes[MAX_HASHES_SIZE][MD5_HASH_LENGTH + 1];
 
 // Funkcja obliczająca hash MD5 dla podanego tekstu i zapisująca wynik w formacie szesnastkowym (hex).
-void calculate_md5(const char *word, char *output) {
+void calculateMD5(const char *inpout_word, char *out_md5) {
+
     // Tablica o rozmiarze 16 bajtów (stała MD5_DIGEST_LENGTH), w której zostanie zapisany wynik funkcji MD5.
     // Hash MD5 zawsze ma długość 16 bajtów (128 bitów).
-    unsigned char digest[MD5_DIGEST_LENGTH];
+    unsigned char MD5_output[MD5_DIGEST_LENGTH];
 
     // Wywołanie funkcji MD5 z biblioteki OpenSSL.
     // Parametry:
     // - (unsigned char *)word: tekst wejściowy przekonwertowany na unsigned char*.
     // - strlen(word): długość tekstu wejściowego.
     // - digest: wskaźnik do tablicy, w której zostanie zapisany wynik (16 bajtów).
-    MD5((unsigned char *)word, strlen(word), digest);
+    MD5((unsigned char *) inpout_word, strlen(inpout_word), MD5_output);
 
     // Pętla przekształcająca wynik hashowania (16 bajtów) na zapis szesnastkowy (hex) w ciągu znaków.
     // Każdy bajt (8 bitów) jest konwertowany na dwa znaki hex, dlatego długość ciągu hex wynosi 32 znaki.
@@ -27,17 +32,17 @@ void calculate_md5(const char *word, char *output) {
         // sprintf zapisuje wynik do wskaźnika 'output' w formacie "%02x":
         // - %02x: konwersja bajtu do dwóch cyfr szesnastkowych (z wiodącym zerem, jeśli potrzeba).
         // - &output[i * 2]: zapisujemy kolejne dwa znaki w odpowiedniej pozycji w ciągu wyjściowym.
-        sprintf(&output[i * 2], "%02x", digest[i]);
+        sprintf(&out_md5[i * 2], "%02x", MD5_output[i]);
     }
 }
 
 
 // Wczytywanie słów z pliku do tablicy
-int load_dictionary(const char *filename, char dictionary[][MAX_WORD_LENGTH], int max_words) {
+int loadDictionary(const char *filename, char dictionary[][MAX_WORD_LENGTH + 1], int max_words) {
     FILE *file = fopen(filename, "r");
     if (!file) {
-        perror("Nie udało się otworzyć pliku słownika");
-        return -1;
+        fprintf(stderr, "Nie udało się otworzyć pliku słownika: %s\n", filename);
+        exit(-1);
     }
 
     int count = 0;
@@ -49,13 +54,13 @@ int load_dictionary(const char *filename, char dictionary[][MAX_WORD_LENGTH], in
     return count;
 }
 
-// Wczytywanie zahaszowanych haseł do tablicy
-int load_hashes(const char *filename, char hashes[][MD5_HASH_LENGTH + 1], int max_hashes) {
-    FILE *file = fopen(filename, "r");
 
+// Wczytywanie zahaszowanych haseł do tablicy
+int loadHashes(const char *filename, char hashes[][MD5_HASH_LENGTH + 1], int max_hashes) {
+    FILE *file = fopen(filename, "r");
     if (!file) {
-        perror("Nie udało się otworzyć pliku haseł");
-        return -1;
+        fprintf(stderr, "Nie udało się otworzyć pliku haseł: %s\n", filename);
+        exit(-1);
     }
 
     int count = 0;
@@ -67,8 +72,10 @@ int load_hashes(const char *filename, char hashes[][MD5_HASH_LENGTH + 1], int ma
     return count;
 }
 
+
+
 // Generowanie wersji pisowni słowa
-void generate_case_variants(const char *word, char lower[], char upper[], char capitalized[]) {
+void generateCaseVariants(const char *word, char lower[], char upper[], char capitalized[]) {
     int length = strlen(word);
 
     // Małe litery
@@ -86,68 +93,74 @@ void generate_case_variants(const char *word, char lower[], char upper[], char c
 }
 
 // Sprawdzanie haseł z rozszerzeniami
-void crack_passwords(const char dictionary[][MAX_WORD_LENGTH], int dict_size,
-                     const char hashes[][MD5_HASH_LENGTH + 1], int hash_count) {
+// Funkcja sprawdzająca, czy hash wygenerowany dla danego słowa jest obecny w tablicy hashy
+void checkHashMatch(const char *word, const char hashes[][MD5_HASH_LENGTH + 1], int hash_count) {
     char hash_result[MD5_HASH_LENGTH + 1];
-    char modified_word[MAX_WORD_LENGTH];
+    calculateMD5(word, hash_result); // Oblicz hash MD5 dla słowa
 
-    printf("Rozpoczynam łamanie haseł...\n");
+    for (int j = 0; j < hash_count; ++j) {
+        if (strcmp(hash_result, hashes[j]) == 0) {
+            printf("Złamane hasło: %s odpowiada hashowi: %s\n", word, hashes[j]);
+        }
+    }
+}
 
-    for (int i = 0; i < dict_size; i++) {
-        char lower[MAX_WORD_LENGTH], upper[MAX_WORD_LENGTH], capitalized[MAX_WORD_LENGTH];
-        generate_case_variants(dictionary[i], lower, upper, capitalized);
+// Funkcja generująca kombinacje słowa z liczbami i sprawdzająca ich hash
+void checkNumberCombinations(const char *word, const char hashes[][MD5_HASH_LENGTH + 1], int hash_count) {
+    char modified_word[MAX_WORD_LENGTH + 1];
+
+    for (int num = 0; num <= 99; ++num) {
+        // Liczba na początku
+        sprintf(modified_word, "%d%s", num, word);
+        checkHashMatch(modified_word, hashes, hash_count);
+
+        // Liczba na końcu
+        sprintf(modified_word, "%s%d", word, num);
+        checkHashMatch(modified_word, hashes, hash_count);
+
+        // Liczba na początku i końcu
+        sprintf(modified_word, "%d%s%d", num, word, num);
+        checkHashMatch(modified_word, hashes, hash_count);
+    }
+}
+
+// Główna funkcja łamania haseł
+void crackPasswords(const char dictionary[][MAX_WORD_LENGTH + 1], int dict_size,
+                     const char hashes[][MD5_HASH_LENGTH + 1], int hash_count) {
+    printf("-> Start dekodowania haszów\n");
+
+    for (int i = 0; i < dict_size; ++i) {
+        char lower[MAX_WORD_LENGTH + 1], upper[MAX_WORD_LENGTH + 1], capitalized[MAX_WORD_LENGTH + 1];
+        generateCaseVariants(dictionary[i], lower, upper, capitalized);
 
         const char *variants[] = {lower, upper, capitalized};
         const int num_variants = 3;
 
         for (int v = 0; v < num_variants; ++v) {
-            for (int num = 0; num <= 99; ++num) {
-                // Generowanie wariantów słów z liczbami
-                sprintf(modified_word, "%d%s", num, variants[v]);
-                calculate_md5(modified_word, hash_result);
-                for (int j = 0; j < hash_count; j++) {
-                    if (strcmp(hash_result, hashes[j]) == 0) {
-                        printf("Złamane hasło: %s odpowiada hashowi: %s\n", modified_word, hashes[j]);
-                    }
-                }
+            // Sprawdź sam wariant bez liczb
+            checkHashMatch(variants[v], hashes, hash_count);
 
-                sprintf(modified_word, "%s%d", variants[v], num);
-                calculate_md5(modified_word, hash_result);
-                for (int j = 0; j < hash_count; j++) {
-                    if (strcmp(hash_result, hashes[j]) == 0) {
-                        printf("Złamane hasło: %s odpowiada hashowi: %s\n", modified_word, hashes[j]);
-                    }
-                }
-
-                sprintf(modified_word, "%d%s%d", num, variants[v], num);
-                calculate_md5(modified_word, hash_result);
-                for (int j = 0; j < hash_count; j++) {
-                    if (strcmp(hash_result, hashes[j]) == 0) {
-                        printf("Złamane hasło: %s odpowiada hashowi: %s\n", modified_word, hashes[j]);
-                    }
-                }
-            }
+            // Sprawdź wariant z liczbami
+            checkNumberCombinations(variants[v], hashes, hash_count);
         }
     }
 
-    printf("Proces łamania haseł zakończony.\n");
+    printf("-> Koniec dekodowania haszów\n");
 }
 
+
+// flagi: -lcrypto
 int main() {
-    // Tablice na słownik i zahaszowane hasła
-    char dictionary[10000][MAX_WORD_LENGTH]; // Maksymalna liczba słów w słowniku
-    char hashes[MAX_HASHES][MD5_HASH_LENGTH + 1]; // Maksymalna liczba haseł
+    int dict_size, hash_size;
 
     // Wczytanie słownika
-    int dict_size = load_dictionary("dictionaries/test_1.txt", dictionary, 10000);
-    if (dict_size < 0) return 1;
+    dict_size = loadDictionary("dictionaries/test_1.txt", dict,MAX_DICTIONARY_SIZE);
 
     // Wczytanie haseł
-    int hash_count = load_hashes("passwords/test_1.txt", hashes, MAX_HASHES);
-    if (hash_count < 0) return 1;
+    hash_size = loadHashes("passwords/test_1.txt", hashes, MAX_HASHES_SIZE);
 
     // Sprawdzanie haseł
-    crack_passwords(dictionary, dict_size, hashes, hash_count);
+    crackPasswords(dict, dict_size, hashes, hash_size);
 
     return 0;
 }
