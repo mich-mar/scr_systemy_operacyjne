@@ -5,21 +5,42 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <pthread.h>
+#include <signal.h>
+#include <unistd.h>
+#include <stdbool.h>
+
 
 #define MAX_HASHES_SIZE 1000
 #define MD5_HASH_LENGTH 32
 #define MAX_WORD_LENGTH 256
 #define MAX_DICTIONARY_SIZE 1000
 #define NUM_THREADS 12
+#define QUEUE_SIZE 100
 
 char **dict;
 char hashes[MAX_HASHES_SIZE][MD5_HASH_LENGTH + 1];
 char mails[MAX_HASHES_SIZE][MAX_WORD_LENGTH + 1];
-int found[MAX_HASHES_SIZE] = {0};
+int found_flags[MAX_HASHES_SIZE] = {0};
+
 int hash_count = 0;
 int dict_size = 0;
+int queue_head = 0, queue_tail = 0;
+bool stop_processing = false;
 
 pthread_mutex_t found_mutex;
+
+typedef struct {
+    char hash[MD5_HASH_LENGTH + 1];
+    char email[MAX_WORD_LENGTH + 1];
+} CrackedPassword;
+
+CrackedPassword queue[QUEUE_SIZE];
+CrackedPassword found[MAX_HASHES_SIZE];
+
+pthread_cond_t queue_not_empty = PTHREAD_COND_INITIALIZER;
+pthread_cond_t queue_not_full = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 
 void bytes2md5(const char *data, char *md5buf) {
     int len = strlen(data);
@@ -107,21 +128,31 @@ int loadHashes(const char *filename) {
 }
 
 
-
 void checkHashMatch(const char *word, int hash_count) {
     char hash_result[MD5_HASH_LENGTH + 1];
     bytes2md5(word, hash_result);
 
     for (int j = 0; j < hash_count; j++) {
         pthread_mutex_lock(&found_mutex);
-        if (strcmp(hash_result, hashes[j]) == 0 && !found[j]) {
-            found[j] = 1;
+        if (strcmp(hash_result, hashes[j]) == 0 && !found_flags[j]) {
+            found_flags[j] = 1;
+            found
+
+            pthread_mutex_lock(&queue_mutex);
+            while ((queue_head + 1) % QUEUE_SIZE == queue_tail) {
+                pthread_cond_wait(&queue_not_full, &queue_mutex);
+            }
+
+            strcpy(queue[queue_head].hash, hashes[j]);
+            strcpy(queue[queue_head].email, mails[j]);
+            queue_head = (queue_head + 1) % QUEUE_SIZE;
+
+            pthread_cond_signal(&queue_not_empty);
+            pthread_mutex_unlock(&queue_mutex);
         }
         pthread_mutex_unlock(&found_mutex);
     }
 }
-
-
 
 void freeDictionary(int dict_size) {
     for (int i = 0; i < dict_size; ++i) {
@@ -253,7 +284,6 @@ void printHashesAndMails(int hash_count) {
     printf("=========================\n");
 }
 
-
 void printDictionary(int dict_size) {
     printf("=== Dictionary Words ===\n");
     for (int i = 0; i < dict_size; i++) {
@@ -262,39 +292,81 @@ void printDictionary(int dict_size) {
     printf("========================\n");
 }
 
-
-int main() {
-    pthread_t threads[NUM_THREADS];
-    int thread_ids[NUM_THREADS];
-
-    pthread_mutex_init(&found_mutex, NULL);
-
-    dict_size = loadDictionary("slowniki/slownik_3.txt");
-
-    hash_count = loadHashes("hasla/hasla_3.txt");
-
-    for (int i = 0; i < NUM_THREADS; i++) {
-        thread_ids[i] = i;
-        pthread_create(&threads[i], NULL, threadFunction, &thread_ids[i]);
-    }
-
-    for (int i = 0; i < NUM_THREADS; i++) {
-        pthread_join(threads[i], NULL);
-    }
-
-    // printDictionary(dict_size);
-    // printHashesAndMails(hash_count);
-
-    printf("Passwords found:\n");
+void sighupHandler(int signum) {
+    pthread_mutex_lock(&queue_mutex);
+    printf("\n=== Złamane hasła na sygnał SIGHUP ===\n");
     for (int i = 0; i < hash_count; i++) {
         if (found[i]) {
             printf("Hash: %s, Email: %s\n", hashes[i], mails[i]);
         }
     }
+    printf("======================================\n");
+    pthread_mutex_unlock(&queue_mutex);
+}
+
+void *consumerThread(void *arg) {
+    while (!stop_processing) {
+        pthread_mutex_lock(&queue_mutex);
+        while (queue_head == queue_tail && !stop_processing) {
+            pthread_cond_wait(&queue_not_empty, &queue_mutex);
+        }
+
+        if (stop_processing) {
+            pthread_mutex_unlock(&queue_mutex);
+            break;
+        }
+
+        CrackedPassword password = queue[queue_tail];
+        queue_tail = (queue_tail + 1) % QUEUE_SIZE;
+
+        printf("Złamane hasło: Hash: %s, Email: %s\n", password.hash, password.email);
+        pthread_cond_signal(&queue_not_full);
+        pthread_mutex_unlock(&queue_mutex);
+    }
+    return NULL;
+}
+
+
+int main() {
+    pthread_t threads[NUM_THREADS];
+    int thread_ids[NUM_THREADS];
+
+    pthread_t consumer_thread;
+
+    pthread_create(&consumer_thread, NULL, consumerThread, NULL);
+
+    // Tworzenie wątków producentów
+    for (int i = 0; i < NUM_THREADS; i++) {
+        thread_ids[i] = i;
+        pthread_create(&threads[i], NULL, threadFunction, &thread_ids[i]);
+    }
+
+    // Dołączanie wątków producentów
+    for (int i = 0; i < NUM_THREADS; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    // Informowanie konsumenta o zakończeniu
+    pthread_mutex_lock(&queue_mutex);
+    stop_processing = true;
+    pthread_cond_signal(&queue_not_empty);
+    pthread_mutex_unlock(&queue_mutex);
+
+    // Dołączenie konsumenta
+    pthread_join(consumer_thread, NULL);
+
+    // Finalne wypisanie złamanych haseł
+    printf("\n=== Ostateczne złamane hasła ===\n");
+    for (int i = 0; i < hash_count; i++) {
+        if (found[i]) {
+            printf("Hash: %s, Email: %s\n", hashes[i], mails[i]);
+        }
+    }
+    printf("================================\n");
 
     freeDictionary(dict_size);
     pthread_mutex_destroy(&found_mutex);
-
-    return 0;
+    pthread_mutex_destroy(&queue_mutex);
+    pthread_cond_destroy(&queue_not_empty);
+    pthread_cond_destroy(&queue_not_full);
 }
-
