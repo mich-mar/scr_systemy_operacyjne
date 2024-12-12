@@ -10,7 +10,7 @@
 #define MD5_HASH_LENGTH 32
 #define MAX_WORD_LENGTH 256
 #define MAX_DICTIONARY_SIZE 1000
-#define NUM_THREADS 3
+#define NUM_THREADS 12
 
 char **dict;
 char hashes[MAX_HASHES_SIZE][MD5_HASH_LENGTH + 1];
@@ -80,38 +80,41 @@ int loadHashes(const char *filename) {
         exit(-1);
     }
 
-    int count = 0, hash_count = 0, mail_count = 0;
+    int hash_count = 0;
+    char line[512]; // Bufor na pojedynczą linię
 
-    char temp[MD5_HASH_LENGTH + 1];
+    while (fgets(line, sizeof(line), file) && hash_count < MAX_HASHES_SIZE) {
+        char hash[MD5_HASH_LENGTH + 1];
+        char mail[MAX_WORD_LENGTH + 1];
+        char id[32]; // ID placeholder
+        char rest[256]; // Placeholder na resztę linii
 
-    while (fscanf(file, "%32s", temp) == 1 && count < MAX_HASHES_SIZE) {
-        if (count % 4 == 1) {
-            strcpy(hashes[hash_count], temp);
-            hash_count++;
+        // Odczytaj pierwsze trzy kolumny, a czwartą ignoruj
+        if (sscanf(line, "%31s %32s %255s %[^\n]", id, hash, mail, rest) < 3) {
+            fprintf(stderr, "Błąd odczytu linii: %s\n", line);
+            continue;
         }
 
-        if (count % 4 == 2) {
-            strcpy(mails[mail_count], temp);
-            mail_count++;
-        }
+        // Skopiuj hash i email do odpowiednich tablic
+        strcpy(hashes[hash_count], hash);
+        strcpy(mails[hash_count], mail);
 
-        count++;
+        hash_count++;
     }
 
     fclose(file);
     return hash_count;
 }
 
+
+
 void checkHashMatch(const char *word, int hash_count) {
     char hash_result[MD5_HASH_LENGTH + 1];
     bytes2md5(word, hash_result);
 
-    printf("Generated hash for '%s': %s\n", word, hash_result); // Debug log
-
     for (int j = 0; j < hash_count; j++) {
         pthread_mutex_lock(&found_mutex);
         if (strcmp(hash_result, hashes[j]) == 0 && !found[j]) {
-            printf("Password for %s is %s\n", mails[j], word);
             found[j] = 1;
         }
         pthread_mutex_unlock(&found_mutex);
@@ -242,6 +245,23 @@ void *threadFunction(void *arg) {
     return NULL;
 }
 
+void printHashesAndMails(int hash_count) {
+    printf("=== Hashes and Emails ===\n");
+    for (int i = 0; i < hash_count; i++) {
+        printf("Hash %d: %s, Email: %s\n", i, hashes[i], mails[i]);
+    }
+    printf("=========================\n");
+}
+
+
+void printDictionary(int dict_size) {
+    printf("=== Dictionary Words ===\n");
+    for (int i = 0; i < dict_size; i++) {
+        printf("Word %d: %s\n", i, dict[i]);
+    }
+    printf("========================\n");
+}
+
 
 int main() {
     pthread_t threads[NUM_THREADS];
@@ -249,11 +269,9 @@ int main() {
 
     pthread_mutex_init(&found_mutex, NULL);
 
-    dict_size = loadDictionary("slowniki/test_dict.txt");
-    printf("Loaded %d dictionary words.\n", dict_size);
+    dict_size = loadDictionary("slowniki/slownik_3.txt");
 
-    hash_count = loadHashes("hasla/test_hashes.txt");
-    printf("Loaded %d hashes.\n", hash_count);
+    hash_count = loadHashes("hasla/hasla_3.txt");
 
     for (int i = 0; i < NUM_THREADS; i++) {
         thread_ids[i] = i;
@@ -263,6 +281,9 @@ int main() {
     for (int i = 0; i < NUM_THREADS; i++) {
         pthread_join(threads[i], NULL);
     }
+
+    // printDictionary(dict_size);
+    // printHashesAndMails(hash_count);
 
     printf("Passwords found:\n");
     for (int i = 0; i < hash_count; i++) {
