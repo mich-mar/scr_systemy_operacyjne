@@ -1,0 +1,4 @@
+0 1 zloto 3 2 
+1 2 rubiny 5 3 3 agaty 1 2
+2 
+3 4 turkus 1 1
