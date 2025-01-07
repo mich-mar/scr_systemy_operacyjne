@@ -1,3 +1,0 @@
-/home/michal/Documents/sem_5/SCR - Systemy Operacyjne/untitled/cmake-build-debug/CMakeFiles/untitled.dir
-/home/michal/Documents/sem_5/SCR - Systemy Operacyjne/untitled/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/michal/Documents/sem_5/SCR - Systemy Operacyjne/untitled/cmake-build-debug/CMakeFiles/rebuild_cache.dir

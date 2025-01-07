@@ -7,7 +7,7 @@
 #include <pthread.h>
 
 // definiujemy maksymalne rozmiary różnych tablic i stałych używanych w programie
-#define MAX_HASHES_SIZE 1000 // maksymalna liczba hashów
+#define MAX_HASHES_SIZE 1000000 // maksymalna liczba hashów
 #define MD5_HASH_LENGTH 32 // długość hashów MD5
 #define MAX_WORD_LENGTH 256 // maksymalna długość słowa
 #define MAX_DICTIONARY_SIZE 1000 // maksymalna liczba słów w słowniku
@@ -18,6 +18,7 @@ char **dict; // tablica dynamiczna na słownik
 char hashes[MAX_HASHES_SIZE][MD5_HASH_LENGTH + 1]; // tablica hashów
 char mails[MAX_HASHES_SIZE][MAX_WORD_LENGTH + 1]; // tablica emaili
 int found[MAX_HASHES_SIZE] = {0}; // tablica statusu znalezienia hasła dla każdego hashu
+char found_passwords[MAX_HASHES_SIZE];
 int hash_count = 0; // liczba załadowanych hashów
 int dict_size = 0; // liczba słów w słowniku
 pthread_mutex_t found_mutex; // mutex do synchronizacji operacji na tablicy `found`
@@ -51,6 +52,7 @@ int loadDictionary(const char *filename) {
     }
 
     dict = malloc(MAX_DICTIONARY_SIZE * sizeof(char *)); // alokujemy tablicę wskaźników
+
     if (!dict) {
         fprintf(stderr, "Błąd alokacji pamięci dla tablicy słów.\n");
         exit(-1);
@@ -63,7 +65,8 @@ int loadDictionary(const char *filename) {
             fprintf(stderr, "Błąd alokacji pamięci dla słowa nr %d.\n", count);
             exit(-1);
         }
-        if (fscanf(file, "%255s", dict[count]) != 1) { // odczytujemy słowo z pliku
+        if (fscanf(file, "%255s", dict[count]) != 1) {
+            // odczytujemy słowo z pliku
             free(dict[count]);
             break;
         }
@@ -115,9 +118,11 @@ void checkHashMatch(const char *word, int hash_count) {
 
     for (int j = 0; j < hash_count; j++) {
         pthread_mutex_lock(&found_mutex); // blokujemy mutex
-        if (strcmp(hash_result, hashes[j]) == 0 && !found[j]) { // sprawdzamy zgodność hashów
+        if (strcmp(hash_result, hashes[j]) == 0 && !found[j]) {
+            // sprawdzamy zgodność hashów
             found[j] = 1; // oznaczamy hash jako znaleziony
-            printf("Password for %s is %s\n", mails[j], word); // drukujemy wynik
+            found_passwords[j] = word;
+            // printf("Password for %s is %s\n", mails[j], word); // drukujemy wynik
         }
         pthread_mutex_unlock(&found_mutex); // odblokowujemy mutex
     }
@@ -133,9 +138,10 @@ void freeDictionary(int dict_size) {
 
 // funkcja wykonywana przez każdy wątek
 void *threadFunction(void *arg) {
-    int thread_id = *(int *)arg; // odczytujemy identyfikator wątku
+    int thread_id = *(int *) arg; // odczytujemy identyfikator wątku
 
-    for (int i = 0; i < dict_size; ++i) { // iterujemy po każdym słowie w słowniku
+    for (int i = 0; i < dict_size; ++i) {
+        // iterujemy po każdym słowie w słowniku
         char modified_word[MAX_WORD_LENGTH + 1];
         char word_lower[MAX_WORD_LENGTH + 1] = "";
         char word_upper[MAX_WORD_LENGTH + 1] = "";
@@ -267,31 +273,101 @@ void printDictionary(int dict_size) {
     printf("========================\n");
 }
 
-// funkcja główna programu
-int main() {
+// funkcja wypisująca wszystkie złamane hasła i powiązane maile
+void printFoundPasswords() {
+    printf("\n=== Złamane hasła ===\n");
+    for (int i = 0; i < hash_count; i++) {
+        if (found[i]) {
+            // Sprawdzamy, czy hash został znaleziony
+            printf("Password for %s is %s\n", mails[i], found_passwords[i]); // drukujemy wynik
+        }
+    }
+    printf("=====================\n");
+}
+
+// funkcja menu
+void menu() {
+    int option;
+    char filename[256];
+    int dict_size, hash_count;
+
     pthread_t threads[NUM_THREADS]; // tablica wątków
     int thread_ids[NUM_THREADS]; // identyfikatory wątków
 
+    while (1) {
+        printf("\n=== MENU ===\n");
+        printf("1) Szybkie sprawdzanie tylko dla jednego maila\n");
+        printf("2) Dodanie nowego pliku słownika\n");
+        printf("3) Dodanie nowego pliku haseł\n");
+        printf("4) Wyświetl złamane hasła\n");
+        printf("5) Sprawdz hasze dla słownika\n");
+        printf("6) Wyjście z programu\n");
+        printf("Wybierz opcję: ");
+        scanf("%d", &option);
+
+        switch (option) {
+            case 5:
+                // uruchamiamy wątki
+                for (int i = 0; i < NUM_THREADS; i++) {
+                    thread_ids[i] = i;
+                    pthread_create(&threads[i], NULL, threadFunction, &thread_ids[i]);
+                }
+
+                // czekamy na zakończenie wątków
+                for (int i = 0; i < NUM_THREADS; i++) {
+                    pthread_join(threads[i], NULL);
+                }
+                break;
+
+            case 1:
+                char mail[255], hash[255];
+                printf("Podaj nazwę maila: ");
+                scanf("%255s", mail);
+                printf("Podaj treść haszhu: ");
+                scanf("%255s", hash);
+                hashes[0][MD5_HASH_LENGTH] = hash;
+                mails[0][MD5_HASH_LENGTH] = mail;
+                hash_count = 1;
+                break;
+
+            case 2:
+                printf("Podaj nazwę pliku słownika: ");
+                scanf("%255s", filename);
+                dict_size = loadDictionary(filename);
+                break;
+            case 3:
+                printf("Podaj nazwę pliku haseł: ");
+                scanf("%255s", filename);
+                hash_count = loadHashes(filename);
+                break;
+            case 4:
+                printFoundPasswords();
+                break;
+            case 6:
+                printf("Wyjście z programu.\n");
+                // zwalniamy zasoby
+                freeDictionary(dict_size);
+                pthread_mutex_destroy(&found_mutex);
+                exit(0);
+            default:
+                printf("Nieznana opcja. Spróbuj ponownie.\n");
+        }
+    }
+}
+
+// funkcja główna programu
+int main() {
     pthread_mutex_init(&found_mutex, NULL); // inicjalizujemy mutex
 
+    menu();
+
     // ładujemy dane z plików
-    dict_size = loadDictionary("slowniki/slownik_3.txt");
-    hash_count = loadHashes("hasla/hasla_3.txt");
-
-    // uruchamiamy wątki
-    for (int i = 0; i < NUM_THREADS; i++) {
-        thread_ids[i] = i;
-        pthread_create(&threads[i], NULL, threadFunction, &thread_ids[i]);
-    }
-
-    // czekamy na zakończenie wątków
-    for (int i = 0; i < NUM_THREADS; i++) {
-        pthread_join(threads[i], NULL);
-    }
+    // dict_size = loadDictionary("slowniki/slownik_3.txt");
+    // hash_count = loadHashes("hasla/hasla_3.txt");
 
     // zwalniamy zasoby
-    freeDictionary(dict_size);
-    pthread_mutex_destroy(&found_mutex);
+    // freeDictionary(dict_size);
+    // pthread_mutex_destroy(&found_mutex);
 
     return 0;
 }
