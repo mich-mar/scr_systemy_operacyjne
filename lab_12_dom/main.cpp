@@ -15,6 +15,7 @@ struct wheelbarrow {
     int weight; // waga kamienia w taczkach
     int quantity; // ilosc kamienia
     int time_needed; // czas potrzebny na wykonanie zadania (weight * quantity)
+    int ctr = 0;
 };
 
 // struktura do przechowywania taczek do obsłużenia
@@ -27,9 +28,9 @@ struct currState {
 std::vector<currState> data;
 
 enum alg {
-  RR,
-  FCFS,
-  SRTF
+    RR,
+    FCFS,
+    SRTF
 };
 
 
@@ -57,7 +58,8 @@ void readDataFromFile(std::string file_path) {
             wheelbarrow temp_wheelbarrow; // utwórz obiekt wheelbarrow
 
             // wczytaj dane taczki
-            iss >> temp_wheelbarrow.number >> temp_wheelbarrow.stone_type >> temp_wheelbarrow.weight >> temp_wheelbarrow.quantity;
+            iss >> temp_wheelbarrow.number >> temp_wheelbarrow.stone_type >> temp_wheelbarrow.weight >> temp_wheelbarrow
+                    .quantity;
 
             // jeśli napotkasz błąd w odczycie, zakończ wczytywanie
             if (iss.fail())
@@ -77,7 +79,7 @@ void readDataFromFile(std::string file_path) {
 
 // funkcja do wyswietlania wczytanych danych
 void printData() {
-    std::cout << std::endl <<  "=================================================" << std::endl;
+    std::cout << std::endl << "=================================================" << std::endl;
     std::cout << "wczytane dane z pliku:\n";
 
     for (int i = 0; i < data.size(); ++i) {
@@ -109,6 +111,87 @@ bool hasWorkingRobot(const std::vector<int> &robot_states) {
     return false;
 }
 
+// funkcja pomocnicza zeby sprawdzić czy jakis robot pracuje
+bool hasWorkingRobot(const std::vector<wheelbarrow> &robots) {
+    for (const auto &robot: robots) {
+        if (robot.time_needed > 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// funkcja planująca pracę robotów za pomocą algorytmu RR (Round Robin)
+void planWorkRR(int num_robots, int quantum) {
+    std::vector<wheelbarrow> robots(num_robots); // lista robotów
+    std::queue<wheelbarrow> queue; // kolejka taczek
+    int current_minute = 0;
+
+    std::cout << "robots in the mine: " << num_robots << std::endl << std::endl;
+
+    // pętla główna - trwa do momentu, gdy wszystkie taczki zostaną przydzielone
+    while (current_minute < data.size() || !queue.empty() || hasWorkingRobot(robots)) {
+        // symulacja trwania rozładunku
+        sleep(1);
+
+        std::cout << std::endl << "moment " << current_minute << ":" << std::endl;
+
+        // dodaj nowe taczki do kolejki
+        if (current_minute < data.size()) {
+            for (int i = 0; i < data[current_minute].barrows.size(); ++i) {
+                wheelbarrow temp_wheelbarrow = data[current_minute].barrows[i];
+                queue.push(temp_wheelbarrow);
+                std::cout << "      wheelbarrow arrived <" << temp_wheelbarrow.number << " "
+                          << temp_wheelbarrow.stone_type << " " << temp_wheelbarrow.weight << " "
+                          << temp_wheelbarrow.quantity << " [" << temp_wheelbarrow.time_needed << "]>\n";
+            }
+        }
+
+
+        // przypisz taczki do wolnych robotów
+        for (int i = 0; i < num_robots; ++i) {
+            if (robots[i].time_needed == 0 && !queue.empty()) {
+                // jeśli robot jest wolny, przypisz mu taczkę
+                wheelbarrow temp_wheelbarrow = queue.front();
+                queue.pop();
+                robots[i] = temp_wheelbarrow;
+            }
+        }
+
+        // wyświetl stan robotów w tej minucie
+        std::cout << "              ";
+        for (int i = 0; i < num_robots; ++i) {
+            std::cout << " ";
+            if (robots[i].time_needed == 0) {
+                std::cout << "[             ]";
+            } else {
+                std::cout << "[" << std::setw(12) << std::left << robots[i].stone_type
+                        << robots[i].time_needed << "]";
+            }
+        }
+
+        std::cout << std::endl;
+
+        // obsługuje robotów, którzy przekroczyli kwant czasu
+        for (int i = 0; i < num_robots; ++i) {
+            if (robots[i].time_needed > quantum) {
+                // jeśli czas pracy robota przekroczył kwant, zatrzymaj robota
+                robots[i].time_needed -= quantum; // zmniejsz czas robota o kwant
+                wheelbarrow temp_robot = robots[i]; // zapisz robota
+                robots[i].ctr = quantum; // ustaw kwant na quantum
+
+                // zwróć robota do kolejki, aby kontynuował pracę
+                queue.push(temp_robot);
+                robots[i] = wheelbarrow(); // resetuj robota
+            } else if (robots[i].time_needed > 0) {
+                robots[i].time_needed--; // zmniejsz czas pracy robota
+            }
+        }
+
+        current_minute++;
+    }
+}
+
 // funkcja planująca pracę robotów za pomocą algorytmu FCFS (First-Come, First-Served)
 void planWorkFCFS(int num_robots) {
     std::vector<int> robot_states(num_robots, 0); // lista stanów robotów (0 = wolny)
@@ -120,7 +203,6 @@ void planWorkFCFS(int num_robots) {
 
     // pętla główna - trwa do momentu, gdy wszystkie taczki zostaną przydzielone
     while (current_minute < (data.size()) || !queue.empty() || hasWorkingRobot(robot_states)) {
-
         // symulacja trwania rozładunku
         sleep(1);
 
@@ -137,8 +219,10 @@ void planWorkFCFS(int num_robots) {
             // wyświetl przyjeżdżające taczki
             for (int i = 0; i < data[current_minute].barrows.size(); ++i) {
                 wheelbarrow &temp_wheelbarrow = data[current_minute].barrows[i];
-                std::cout << "      wheelbarrow arrived <" << temp_wheelbarrow.number << " " << temp_wheelbarrow.stone_type
-                          << " " << temp_wheelbarrow.weight << " " << temp_wheelbarrow.quantity << " [" << temp_wheelbarrow.time_needed << "]>\n";
+                std::cout << "      wheelbarrow arrived <" << temp_wheelbarrow.number << " " << temp_wheelbarrow.
+                        stone_type
+                        << " " << temp_wheelbarrow.weight << " " << temp_wheelbarrow.quantity << " [" <<
+                        temp_wheelbarrow.time_needed << "]>\n";
             }
         }
 
@@ -163,7 +247,7 @@ void planWorkFCFS(int num_robots) {
             } else {
                 // jeśli robot ma zadanie, wyświetl szczegóły taczki z pozostałym czasem
                 std::cout << "[" << std::setw(12) << std::left << robot_tasks[i].stone_type
-                          << robot_states[i] << "]";
+                        << robot_states[i] << "]";
             }
         }
 
@@ -184,81 +268,11 @@ void planWorkFCFS(int num_robots) {
     }
 }
 
-// funkcja planująca pracę robotów za pomocą algorytmu RR (Round Robin)
-void planWorkRR(int num_robots, int quantum) {
-    std::vector<int> robot_states(num_robots, 0); // lista stanów robotów (czas pracy robota)
-    std::vector<wheelbarrow> robot_tasks(num_robots); // aktualne zadania robotów
-    std::queue<wheelbarrow> queue; // kolejka taczek
-    int current_minute = 0;
-
-    std::cout << "robots in the mine: " << num_robots << std::endl << std::endl;
-
-    while (current_minute < data.size() || !queue.empty() || hasWorkingRobot(robot_states)) {
-        sleep(1); // symulacja jednej minuty
-        std::cout << "\nMoment " << current_minute << ":" << std::endl;
-
-        // Dodawanie nowych taczek do kolejki w bieżącej minucie
-        if (current_minute < data.size() && data[current_minute].minute == current_minute) {
-            for (wheelbarrow &barrow : data[current_minute].barrows) {
-                queue.push(barrow);
-                std::cout << "    Wheelbarrow arrived <" << barrow.number << " " << barrow.stone_type
-                          << " " << barrow.weight << " " << barrow.quantity << " [" << barrow.time_needed << "]>\n";
-            }
-        }
-
-        // Obsługa robotów
-        for (int i = 0; i < num_robots; ++i) {
-            // Jeśli robot zakończył pracę, zwolnij go
-            if (robot_states[i] == 0 && robot_tasks[i].time_needed > 0) {
-                // Jeśli zadanie nie zostało ukończone, wróć je do kolejki
-                queue.push(robot_tasks[i]);
-                // robot_tasks[i] = wheelbarrow{}; // resetuj dane taczki
-                queue.pop();
-            }
-
-            // Jeśli robot jest wolny, przypisz nowe zadanie
-            if (robot_states[i] == 0 && !queue.empty()) {
-                wheelbarrow temp_wheelbarrow = queue.front();
-                queue.pop();
-
-                temp_wheelbarrow.time_needed--;
-
-                // Aktualizuj pozostały czas pracy nad taczką
-                robot_tasks.push_back(temp_wheelbarrow);
-            }
-        }
-
-        // Wyświetl stan robotów
-        std::cout << "              ";
-        for (int i = 0; i < num_robots; ++i) {
-            std::cout << " ";
-            if (robot_states[i] == 0) {
-                std::cout << "[             ]"; // robot wolny
-            } else {
-                std::cout << "[" << std::setw(12) << std::left << robot_tasks[i].stone_type
-                          << robot_states[i] << "]"; // robot pracuje
-            }
-        }
-        std::cout << std::endl;
-
-        // Zmniejsz czas pracy robotów
-        for (int i = 0; i < num_robots; ++i) {
-            if (robot_states[i] > 0) {
-                robot_states[i]--; // zmniejsz czas pracy
-            }
-        }
-
-        current_minute++;
-    }
-}
-
-
-
 
 int main(int argc, char *argv[]) {
     if (argc < 5) {
         std::cerr << "Usage: " << argv[0]
-                  << " <number_of_robots> <quantum> <file_name> <algorithm_choice>" << std::endl;
+                << " <number_of_robots> <quantum> <file_name> <algorithm_choice>" << std::endl;
         std::cerr << "Algorithm choices: 1 = RR, 2 = FCFS, 3 = SRTF" << std::endl;
         return 1;
     }
@@ -290,20 +304,20 @@ int main(int argc, char *argv[]) {
 
     std::cout << std::endl << "=================================================" << std::endl << std::endl;
     std::cout << "Running simulation with " << robot_count << " robots, quantum: " << quantum
-              << ", algorithm: ";
+            << ", algorithm: ";
 
     switch (algorithm) {
         case RR:
             std::cout << "RR" << std::endl;
-        break;
+            break;
 
         case FCFS:
             std::cout << "FCFS" << std::endl;
-        break;
+            break;
 
         case SRTF:
             std::cout << "SRTF" << std::endl;
-        break;
+            break;
     }
 
     std::cout << std::endl;
@@ -319,4 +333,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
