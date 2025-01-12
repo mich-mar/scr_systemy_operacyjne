@@ -1,0 +1,6 @@
+1 1 gold 2 1 2 rubins 3 2 3 coconuts 3 1 4 turquoise 1 2
+2
+3 5 aventurines 3 2 6 beryls 2 1 7 diamonds 1
+4 8 sapphires 4 2 9 emeralds 1 1 10 opals 4 3 11 gold 1 1 12 amethysts 3 4
+5
+6 13 topazes 2 1 14 pearls 3 4 15 gold 2 1 16 aquamarines 2 1
