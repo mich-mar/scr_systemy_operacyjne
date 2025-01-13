@@ -253,74 +253,6 @@ void planWorkFCFS() {
 }
 
 
-// funkcja planująca pracę robotów za pomocą algorytmu SRTF (Shortest Remaining Time First)
-void planWorkSRTF() {
-    std::vector<wheelbarrow> robots(num_robots); // lista robotów
-    std::vector<wheelbarrow> queue; // zmieniamy kolejkę na wektor
-    int current_minute = 0;
-
-    std::cout << "robots in the mine: " << num_robots << std::endl;
-    std::cout << "used alg - SRTF:" << std::endl << std::endl;
-
-    // pętla główna - trwa do momentu, gdy wszystkie taczki zostaną przydzielone
-    while (current_minute < data.size() || !queue.empty() || hasWorkingRobot(robots)) {
-        // symulacja trwania rozładunku
-        sleep(1);
-
-        std::cout << std::endl << "moment " << current_minute << ":" << std::endl;
-
-        // dodaj nowe taczki do kolejki
-        if (current_minute < data.size()) {
-            for (int i = 0; i < data[current_minute].barrows.size(); ++i) {
-                wheelbarrow temp_wheelbarrow = data[current_minute].barrows[i];
-                queue.push_back(temp_wheelbarrow); // dodajemy do wektora
-                std::cout << "      wheelbarrow arrived <" << temp_wheelbarrow.number << " "
-                        << temp_wheelbarrow.stone_type << " " << temp_wheelbarrow.weight << " "
-                        << temp_wheelbarrow.quantity << " [" << temp_wheelbarrow.time_needed << "]>\n";
-            }
-        }
-
-        // sortowanie taczki w wektorze na podstawie pozostałego czasu (SRTF)
-        std::sort(queue.begin(), queue.end(), [](const wheelbarrow &a, const wheelbarrow &b) {
-            return a.time_needed < b.time_needed; // sortujemy rosnąco według czasu potrzebnego
-        });
-
-        // przypisz taczki do wolnych robotów
-        for (int i = 0; i < num_robots; ++i) {
-            if (robots[i].time_needed == 0 && !queue.empty()) {
-                // jeśli robot jest wolny, przypisz mu taczkę
-                wheelbarrow temp_wheelbarrow = queue.front();
-                queue.erase(queue.begin()); // usuwamy taczkę z przodu wektora
-                robots[i] = temp_wheelbarrow;
-            }
-        }
-
-        // wyświetl stan robotów w tej minucie
-        std::cout << "              ";
-        for (int i = 0; i < num_robots; ++i) {
-            std::cout << " ";
-            if (robots[i].time_needed == 0) {
-                std::cout << "[             ]";
-            } else {
-                std::cout << "[" << std::setw(12) << std::left << robots[i].stone_type
-                        << robots[i].time_needed << "]";
-            }
-        }
-
-        std::cout << std::endl;
-
-        // zmniejszaj czas pracy robotów
-        for (int i = 0; i < num_robots; ++i) {
-            if (robots[i].time_needed > 0) {
-                robots[i].time_needed--; // zmniejsz czas pracy robota
-            }
-        }
-
-        current_minute++;
-    }
-}
-
-
 int main(int argc, char *argv[]) {
     if (argc < 5) {
         std::cerr << "Usage: " << argv[0]
@@ -366,7 +298,7 @@ int main(int argc, char *argv[]) {
     } else if (algorithm == FCFS) {
         planWorkFCFS();
     } else if (algorithm == SRTF) {
-        planWorkSRTF();
+        std::cerr << "Brak zaimplementowanego algorytmu SRTF :((" << std::endl;
     }
 
     return 0;
